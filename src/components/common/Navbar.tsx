@@ -30,14 +30,12 @@ const Navbar = () => {
 
   useEffect(() => {
     const auth = localStorage.getItem('isLoggedIn');
-    const adminAuth = localStorage.getItem('isAdminAuthorized');
+    const userRole = localStorage.getItem('userRole');
     if (auth === 'true') {
       setIsLoggedIn(true);
     }
-    if (adminAuth === 'true') {
-      setIsAdmin(true);
-      setIsLoggedIn(true);
-    }
+    setIsAdmin(userRole === 'admin');
+
     const storedName = localStorage.getItem('userName');
     if (storedName) {
       setUserName(storedName);
@@ -70,8 +68,11 @@ const Navbar = () => {
   */
 
   const handleDashboardNavigate = (tab: string) => {
-    if (isAdmin) {
+    const role = localStorage.getItem('userRole');
+    if (role === 'admin') {
       navigate('/admin', { state: { activeTab: tab } });
+    } else if (role === 'tradie') {
+      navigate('/tradie-dashboard', { state: { activeTab: tab } });
     } else {
       navigate('/user-dashboard', { state: { activeTab: tab } });
     }

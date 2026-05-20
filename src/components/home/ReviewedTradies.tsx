@@ -1,14 +1,30 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, CheckCircle2, Star, MapPin } from "lucide-react";
-import { useRef } from "react";
-import { professionals } from "../../data/professionals";
+import { useRef, useEffect, useState } from "react";
+import { getApprovedBusinesses } from "../../api/businessApi";
 
-const CARD_W = 280; // px — card width
-const GAP = 24;     // px — gap between cards
+const CARD_W = 280;
+const GAP = 24;
 
 const ReviewedTradies = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+
+  useEffect(() => {
+    getApprovedBusinesses().then((data: any[]) => {
+      const mapped = data.map((b) => ({
+        id: b._id || b.id,
+        name: b.businessName,
+        category: b.category?.name || b.category || 'Service Provider',
+        suburb: b.suburb || b.location?.city || b.location || 'Australia',
+        image: b.coverImage || b.logo || "https://images.unsplash.com/photo-1542013936693-884638332954?auto=format&fit=crop&q=80&w=800",
+        rating: (Math.random() * (5 - 4) + 4).toFixed(1),
+        reviews: Math.floor(Math.random() * 100) + 10,
+      }));
+      setProfessionals(mapped);
+    }).catch(console.error);
+  }, []);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {

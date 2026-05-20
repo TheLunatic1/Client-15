@@ -1,13 +1,41 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star, ChevronRight, MapPin, Search } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-
-import { professionals } from "../../data/professionals";
+import { getApprovedBusinesses } from "../../api/businessApi";
 
 export const FindProGrid = () => {
   const [searchParams] = useSearchParams();
   const categoryFilter = searchParams.get("category");
   const locationFilter = searchParams.get("location");
+  
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBusinesses = async () => {
+      try {
+        const data = await getApprovedBusinesses();
+        const mapped = data.map((b: any) => ({
+          id: b._id || b.id,
+          name: b.businessName,
+          category: b.category?.name || b.category || 'Service Provider',
+          location: b.location?.city ? `${b.location.city}, ${b.location.region}` : (b.location || 'Australia'),
+          description: b.description || 'No description provided.',
+          image: b.gallery?.[0]?.url || "https://images.unsplash.com/photo-1542013936693-884638332954?auto=format&fit=crop&q=80&w=800",
+          tags: b.services?.length ? b.services : ['Professional'],
+          rating: (Math.random() * (5 - 4) + 4).toFixed(1), // placeholder
+          reviews: Math.floor(Math.random() * 50) + 1 // placeholder
+        }));
+        setProfessionals(mapped);
+      } catch(err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBusinesses();
+  }, []);
 
   const filteredPros = professionals.filter((pro) => {
     // Improved category matching (fuzzy/partial)
@@ -34,7 +62,9 @@ export const FindProGrid = () => {
   return (
     <section className="bg-slate-50 py-20 pb-32">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        {filteredPros.length > 0 ? (
+        {isLoading ? (
+          <div className="text-center py-20">Loading professionals...</div>
+        ) : filteredPros.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredPros.map((pro, index) => (
               <motion.div

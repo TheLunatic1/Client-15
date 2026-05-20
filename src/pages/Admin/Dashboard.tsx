@@ -1,3 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -5,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createCategory, deleteCategory, updateCategory, getCategories } from '../../api/categoryApi';
 import { createLocation, deleteLocation, updateLocation } from '../../api/locationApi';
 import { getBlogs, createBlog, updateBlog, deleteBlog as apiDeleteBlog } from '../../api/blogApi';
+import { uploadImage } from '../../api/uploadApi';
 import { getAdminAllBusinesses, updateBusinessStatus, adminDeleteBusiness } from '../../api/businessApi';
 import { getAdminStats } from '../../api/statsApi';
 import axiosClient from '../../api/axios';
@@ -142,26 +147,39 @@ const AdminDashboard = () => {
   const [blogsRefreshKey, setBlogsRefreshKey] = useState(0);
   const [blogs, setBlogs] = useState<any[]>([]);
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [blogImageUploading, setBlogImageUploading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [blogsData, catsData] = await Promise.all([getBlogs(), getCategories()]);
-        
+
         if (Array.isArray(catsData)) {
           setCategoriesList(catsData);
         }
 
-        const mappedBlogs = blogsData.map((b: any) => ({
-          ...b,
-          categoryId: typeof b.category === 'object' && b.category ? (b.category._id || b.category.id) : b.category,
-          date: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown',
-          publisher: b.writer || 'System Admin',
-          category: typeof b.category === 'object' && b.category ? b.category.name : b.category || 'Uncategorized'
-        }));
+        const mappedBlogs = blogsData.map((b: any) => {
+          // Always coerce _id to a plain string so it's safe to use in URLs
+          const rawId = b._id?.$oid || b._id?.toString?.() || String(b._id || '');
+          const rawCatId = typeof b.category === 'object' && b.category
+            ? (b.category._id?.$oid || b.category._id?.toString?.() || String(b.category._id || ''))
+            : String(b.category || '');
+          return {
+            ...b,
+            _id: rawId,
+            categoryId: rawCatId,
+            date: b.createdAt
+              ? new Date(b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : 'Unknown',
+            publisher: b.writer || 'System Admin',
+            category: typeof b.category === 'object' && b.category
+              ? b.category.name
+              : b.category || 'Uncategorized',
+          };
+        });
         setBlogs(mappedBlogs);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error('Error fetching data:', err);
       }
     };
     fetchData();
@@ -172,22 +190,24 @@ const AdminDashboard = () => {
   const [blogForm, setBlogForm] = useState({
     title: '',
     category: '',
-    image: '',
+    image: '',      // always a URL string — never base64
     excerpt: '',
-    date: '',
-    publisher: ''
+    publisher: '',
   });
 
   const handleOpenBlogModal = (blog: any = null) => {
-    if (blog) {
-      setEditingBlog(blog);
+    // If blog is an Event, ignore it (it means we clicked 'Create New')
+    const isEvent = blog && (blog.nativeEvent || blog.target || typeof blog.preventDefault === 'function');
+    const targetBlog = isEvent ? null : blog;
+
+    if (targetBlog) {
+      setEditingBlog(targetBlog);
       setBlogForm({
-        title: blog.title || '',
-        category: blog.categoryId || '',
-        image: blog.image || '',
-        excerpt: blog.excerpt || '',
-        date: blog.date || '',
-        publisher: blog.publisher || 'System Admin'
+        title: targetBlog.title || '',
+        category: targetBlog.categoryId || '',
+        image: targetBlog.image || '',
+        excerpt: targetBlog.excerpt || '',
+        publisher: targetBlog.publisher || 'System Admin',
       });
     } else {
       setEditingBlog(null);
@@ -196,25 +216,45 @@ const AdminDashboard = () => {
         category: categoriesList.length > 0 ? (categoriesList[0]._id || categoriesList[0].id) : '',
         image: '',
         excerpt: '',
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        publisher: 'System Admin'
+        publisher: 'System Admin',
       });
     }
     setIsBlogModalOpen(true);
   };
 
+  // Upload image file to server → get back a URL, store in form
+  const handleBlogImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setBlogImageUploading(true);
+      const url = await uploadImage(file);
+      setBlogForm(prev => ({ ...prev, image: url }));
+    } catch (err: any) {
+      Swal.fire('Upload Failed', err?.response?.data?.message || 'Could not upload image.', 'error');
+    } finally {
+      setBlogImageUploading(false);
+    }
+  };
+
   const handleSaveBlog = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!blogForm.image) {
+      Swal.fire('Missing Image', 'Please upload a cover image before publishing.', 'warning');
+      return;
+    }
     try {
       const payload = {
         title: blogForm.title,
         category: blogForm.category,
-        image: blogForm.image,
+        image: blogForm.image,   // URL from upload API
         excerpt: blogForm.excerpt,
-        writer: blogForm.publisher
+        writer: blogForm.publisher,
       };
       if (editingBlog) {
-        await updateBlog(editingBlog.id, payload);
+        // Use _id — guaranteed to exist from the mapping above
+        const blogId = editingBlog._id;
+        await updateBlog(blogId, payload);
         Swal.fire('Updated!', 'Blog post has been updated.', 'success');
       } else {
         await createBlog(payload);
@@ -227,36 +267,28 @@ const AdminDashboard = () => {
     }
   };
 
-  const deleteBlog = async (id: number | string) => {
+  const deleteBlog = async (id: string | number) => {    if (!id || id === 'undefined') {
+      Swal.fire('Error', 'Invalid blog ID — cannot delete.', 'error');
+      return;
+    }
     const result = await Swal.fire({
       title: 'Are you sure?',
-      text: "This blog post will be permanently removed!",
+      text: 'This blog post will be permanently removed!',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#097DDD',
       cancelButtonColor: '#f43f5e',
-      confirmButtonText: 'Yes, delete it!'
+      confirmButtonText: 'Yes, delete it!',
     });
-    
+
     if (result.isConfirmed) {
       try {
-        await apiDeleteBlog(String(id));
+        await apiDeleteBlog(id);
         setBlogsRefreshKey(prev => prev + 1);
         Swal.fire('Deleted!', 'Post has been removed.', 'success');
       } catch (err: any) {
         Swal.fire('Error', err?.response?.data?.message || err?.message || 'Unable to delete blog.', 'error');
       }
-    }
-  };
-
-  const handleBlogImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBlogForm({ ...blogForm, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -581,18 +613,9 @@ const AdminDashboard = () => {
       {/* Main Content Area */}
       <main className="flex-grow overflow-y-auto custom-scrollbar">
         {/* Top Header */}
-        <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-5 py-2.5 w-full max-w-xl group focus-within:border-primary/30 transition-all">
-            <Search className="text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
-            <input
-              type="text"
-              placeholder="Search listings, users or leads..."
-              className="bg-transparent border-none focus:ring-0 text-sm font-medium ml-4 w-full text-slate-600 placeholder:text-slate-400"
-            />
-          </div>
-
+        <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4 border-l border-slate-100 pl-6 ml-2">
+            <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-[13px] font-black text-slate-900 uppercase tracking-tight">
                   {localStorage.getItem('userName') || 'Admin'}
@@ -655,7 +678,7 @@ const AdminDashboard = () => {
                   isLoading={businessLoading}
                 />
               )}
-              {activeTab === 'blogs' && <BlogSection blogs={blogs} onAdd={handleOpenBlogModal} onEdit={handleOpenBlogModal} onDelete={deleteBlog} />}
+              {activeTab === 'blogs' && <BlogSection blogs={blogs} onAdd={() => handleOpenBlogModal(null)} onEdit={handleOpenBlogModal} onDelete={deleteBlog} />}
               {activeTab === 'categories' && <CategorySection refreshKey={categoriesRefreshKey} onAdd={() => handleOpenCategoryModal()} onEdit={(cat) => handleOpenCategoryModal(cat)} onDelete={handleDeleteCategory} />}
               {activeTab === 'locations' && <LocationSection refreshKey={locationsRefreshKey} onAdd={() => handleOpenLocationModal()} onEdit={(loc) => handleOpenLocationModal(loc)} onDelete={handleDeleteLocation} />}
               {activeTab === 'users' && <UsersSection />}
@@ -726,18 +749,39 @@ const AdminDashboard = () => {
                 <div className="space-y-4">
                   <label className="text-[12px] font-black uppercase tracking-widest text-slate-400 ml-1">Cover Image</label>
                   <div className="relative h-64 bg-slate-50 rounded-[2rem] border-4 border-dashed border-slate-100 overflow-hidden group cursor-pointer">
-                    <input type="file" accept="image/*" onChange={handleBlogImageChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                    {blogForm.image ? (
+                    {/* Hidden file input — disabled while uploading */}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBlogImageChange}
+                      disabled={blogImageUploading}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                    />
+
+                    {blogImageUploading ? (
+                      /* Uploading spinner */
+                      <div className="h-full flex flex-col items-center justify-center gap-4 text-[#097DDD]">
+                        <svg className="animate-spin w-10 h-10" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Uploading…</span>
+                      </div>
+                    ) : blogForm.image ? (
+                      /* Preview uploaded image */
                       <>
-                        <img src={blogForm.image} className="w-full h-full object-cover" alt="Preview" />
+                        <img src={blogForm.image} className="w-full h-full object-cover" alt="Cover preview" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <Camera className="text-white w-10 h-10" />
+                          <span className="ml-2 text-white font-black text-sm">Change Image</span>
                         </div>
                       </>
                     ) : (
+                      /* Empty state */
                       <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
                         <Upload size={40} strokeWidth={1.5} />
-                        <span className="text-[12px] font-black uppercase tracking-[0.2em]">Upload High-Res Image</span>
+                        <span className="text-[12px] font-black uppercase tracking-[0.2em]">Click to Upload Cover Image</span>
+                        <span className="text-[10px] text-slate-300">JPG, PNG, WEBP up to 5MB</span>
                       </div>
                     )}
                   </div>
@@ -782,29 +826,16 @@ const AdminDashboard = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-3">
-                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-400 ml-1">Publication Date</label>
-                    <input 
-                      type="text" 
-                      value={blogForm.date}
-                      onChange={(e) => setBlogForm({...blogForm, date: e.target.value})}
-                      placeholder="e.g. May 19, 2026" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all" 
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-400 ml-1">Publisher Name</label>
-                    <input 
-                      type="text" 
-                      value={blogForm.publisher}
-                      onChange={(e) => setBlogForm({...blogForm, publisher: e.target.value})}
-                      placeholder="e.g. System Admin" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all" 
-                      required
-                    />
-                  </div>
+                <div className="space-y-3">
+                  <label className="text-[12px] font-black uppercase tracking-widest text-slate-400 ml-1">Publisher Name</label>
+                  <input
+                    type="text"
+                    value={blogForm.publisher}
+                    onChange={(e) => setBlogForm({...blogForm, publisher: e.target.value})}
+                    placeholder="e.g. System Admin"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all"
+                    required
+                  />
                 </div>
 
                 <div className="flex gap-4 pt-4">

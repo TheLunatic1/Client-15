@@ -1,17 +1,42 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Globe, ShieldCheck, Briefcase } from 'lucide-react';
+import Swal from 'sweetalert2';
+import axiosClient from '../../../../api/axios';
 
 interface UserProfileSectionProps {
   userData: {
     name: string;
+    firstName?: string;
+    lastName?: string;
     email: string;
     phone: string;
     avatar: string;
     location: string;
   };
+  onUpdate?: () => void;
 }
 
-const UserProfileSection = ({ userData }: UserProfileSectionProps) => {
+const UserProfileSection = ({ userData, onUpdate }: UserProfileSectionProps) => {
+  const [formData, setFormData] = useState({
+    firstName: userData.firstName || userData.name.split(' ')[0] || '',
+    lastName: userData.lastName || userData.name.split(' ').slice(1).join(' ') || '',
+    phone: userData.phone || '',
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleUpdate = async () => {
+    setIsUpdating(true);
+    try {
+      await axiosClient.put('/api/users/profile', formData);
+      Swal.fire('Success', 'Profile updated successfully', 'success');
+      if (onUpdate) onUpdate();
+    } catch (error: any) {
+      Swal.fire('Error', error.response?.data?.message || 'Failed to update profile', 'error');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -66,20 +91,24 @@ const UserProfileSection = ({ userData }: UserProfileSectionProps) => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Full Name</label>
-                <input type="text" defaultValue={userData.name} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all" />
+                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">First Name</label>
+                <input type="text" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Last Name</label>
+                <input type="text" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all" />
               </div>
               <div className="space-y-2">
                 <label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Email Address</label>
-                <input type="email" defaultValue={userData.email} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all opacity-50 cursor-not-allowed" disabled />
+                <input type="email" value={userData.email} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all opacity-50 cursor-not-allowed" disabled />
               </div>
               <div className="space-y-2">
                 <label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Phone Number</label>
-                <input type="tel" defaultValue={userData.phone} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all" />
+                <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all" />
               </div>
               <div className="space-y-2 flex items-end">
-                <button className="w-full bg-[#097DDD] hover:bg-[#0869bb] text-white font-black py-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all uppercase tracking-widest text-[11px]">
-                  Save Changes
+                <button onClick={handleUpdate} disabled={isUpdating} className="w-full bg-[#097DDD] hover:bg-[#0869bb] text-white font-black py-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all uppercase tracking-widest text-[11px] disabled:opacity-50">
+                  {isUpdating ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>

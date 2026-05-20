@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, HardHat, ArrowLeft, ArrowRight, Check, ShieldCheck, Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -7,6 +9,7 @@ import Swal from 'sweetalert2';
 // Assets
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import tradieBg from '../../assets/tradie-login-bg.png';
+import axiosClient from '../../api/axios';
 
 const JoinNow = () => {
   const navigate = useNavigate();
@@ -49,42 +52,29 @@ const JoinNow = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:5000/api/users/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: `${firstName} ${lastName}`,
-          email,
-          password,
-          role: 'user'
-        })
+      const response = await axiosClient.post('/api/users/register', {
+        firstName,
+        lastName,
+        email,
+        password,
+        role: 'user'
       });
-      const data = await response.json();
+      const data = response.data;
 
-      if (response.ok) {
-        Swal.fire({
-          title: 'Success',
-          text: 'Account created successfully! Please log in.',
-          icon: 'success',
-          confirmButtonColor: '#097DDD'
-        }).then(() => {
-          navigate('/login');
-        });
-      } else {
-        Swal.fire({
-          title: 'Registration Failed',
-          text: data.message || 'Something went wrong',
-          icon: 'error',
-          confirmButtonColor: '#097DDD'
-        });
-      }
-    } catch (error) {
-      console.error(error);
       Swal.fire({
-        title: 'Error',
-        text: 'Failed to connect to server',
+        title: 'Success',
+        text: 'Account created successfully! Please log in.',
+        icon: 'success',
+        confirmButtonColor: '#097DDD'
+      }).then(() => {
+        navigate('/login');
+      });
+    } catch (error: any) {
+      console.error(error);
+      const errorMsg = error.response?.data?.message || 'Failed to connect to server';
+      Swal.fire({
+        title: 'Registration Failed',
+        text: errorMsg,
         icon: 'error',
         confirmButtonColor: '#097DDD'
       });
@@ -123,56 +113,46 @@ const JoinNow = () => {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(tradieEmail)) {
+      Swal.fire({
+        title: 'Error',
+        text: 'Please enter a valid email address',
+        icon: 'error',
+        confirmButtonColor: '#097DDD'
+      });
+      return;
+    }
+
+    // Validate password length
+    if (tradiePassword.length < 6) {
+      Swal.fire({
+        title: 'Error',
+        text: 'Password must be at least 6 characters long',
+        icon: 'error',
+        confirmButtonColor: '#097DDD'
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:5000/api/users/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: tradieName,
-          email: tradieEmail,
-          password: tradiePassword,
-          role: 'user'
-        })
+      const parts = tradieName.trim().split(' ');
+      const fName = parts[0] || '';
+      const lName = parts.slice(1).join(' ') || '';
+
+      const response = await axiosClient.post('/api/users/register', {
+        firstName: fName,
+        lastName: lName,
+        email: tradieEmail,
+        password: tradiePassword,
+        role: 'tradie'
       });
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('token', data.token || 'dummy-tradie-token');
-        localStorage.setItem('userRole', 'tradie');
-        localStorage.setItem('userName', tradieName);
-        localStorage.setItem('userEmail', tradieEmail);
-
-        if (tradieBusinessName) {
-          localStorage.setItem('prefillBusinessName', tradieBusinessName);
-        }
-        localStorage.setItem('prefillContactName', tradieName);
-        localStorage.setItem('prefillContactEmail', tradieEmail);
-
-        Swal.fire({
-          title: 'Welcome, ' + tradieName + '!',
-          text: 'Your Tradie Account has been created successfully! Let\'s list your business now.',
-          icon: 'success',
-          confirmButtonColor: '#097DDD'
-        }).then(() => {
-          navigate('/list-your-business');
-        });
-      } else {
-        Swal.fire({
-          title: 'Registration Failed',
-          text: data.message || 'Something went wrong',
-          icon: 'error',
-          confirmButtonColor: '#097DDD'
-        });
-      }
-    } catch (error) {
-      console.warn('Backend connection failed, falling back to local credentials...', error);
+      const data = response.data;
 
       localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('token', 'dummy-tradie-token');
+      localStorage.setItem('token', data.token || 'dummy-tradie-token');
       localStorage.setItem('userRole', 'tradie');
       localStorage.setItem('userName', tradieName);
       localStorage.setItem('userEmail', tradieEmail);
@@ -184,12 +164,25 @@ const JoinNow = () => {
       localStorage.setItem('prefillContactEmail', tradieEmail);
 
       Swal.fire({
-        title: 'Welcome (Offline Mode)!',
-        text: 'Account created locally! Let\'s list your business now.',
+        title: 'Welcome, ' + tradieName + '!',
+        text: 'Your Tradie Account has been created successfully! Let\'s list your business now.',
         icon: 'success',
         confirmButtonColor: '#097DDD'
       }).then(() => {
         navigate('/list-your-business');
+      });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      // Get the error message from backend or show generic error
+      const errorMsg = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+      
+      // Only show error, don't fall back to dummy token
+      Swal.fire({
+        title: 'Registration Failed',
+        text: errorMsg,
+        icon: 'error',
+        confirmButtonColor: '#097DDD'
       });
     } finally {
       setIsSubmitting(false);

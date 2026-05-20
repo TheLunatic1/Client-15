@@ -7,8 +7,8 @@ import Contact from '../pages/Contact/index.ts';
 import Login from '../pages/Login/index.ts';
 import JoinNow from '../pages/JoinNow/index.ts';
 import AdminDashboard from '../pages/Admin/index.ts';
-import SuperUserDashboard from '../pages/Admin/SuperUserDashboard.tsx';
-import { TradieDashboard } from '../pages/TradieDashboard/index.ts';
+import UserDashboard from '../pages/UserDashboard/index.tsx';
+import TradieDashboard from '../pages/TradieDashboard/index.ts';
 import { BlogPage, BlogDetails } from '../pages/Blog/index.ts';
 import BusinessProfile from '../pages/FindAPro/BusinessProfile.tsx';
 import Terms from '../pages/Terms/index.ts';
@@ -29,7 +29,7 @@ const AppRoutes = () => {
       <Route path="/blog/:id" element={<BlogDetails />} />
       <Route path="/business/:id" element={<BusinessProfile />} />
       <Route path="/admin" element={<ProtectedRoute element={<AdminDashboard />} requiredRole="admin" />} />
-      <Route path="/user-dashboard" element={<ProtectedRoute element={<SuperUserDashboard />} requiredRole="superuser" />} />
+      <Route path="/user-dashboard" element={<ProtectedRoute element={<UserDashboard />} requiredRole="user" />} />
       <Route path="/tradie-dashboard" element={<ProtectedRoute element={<TradieDashboard />} requiredRole="tradie" />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />

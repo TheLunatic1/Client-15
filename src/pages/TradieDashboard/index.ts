@@ -1,1 +1,1 @@
-export { default as TradieDashboard } from './index.tsx';
+export { default } from './index.tsx';

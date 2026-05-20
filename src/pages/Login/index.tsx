@@ -7,6 +7,7 @@ import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-remo
 import LoadingScreen from '../../components/common/LoadingScreen';
 // Using the generated image
 import tradieBg from '../../assets/tradie-login-bg.png';
+import axiosClient from '../../api/axios';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -28,35 +29,26 @@ const Login = () => {
 
     try {
       // 1. Try to login via Backend API
-      const response = await fetch('http://localhost:5000/api/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password })
-      });
-      
-      const data = await response.json();
+      const response = await axiosClient.post('/api/users/login', { email, password });
+      const data = response.data;
 
-      if (response.ok) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('token', data.token);
-        
-        // If regular user in db, map to 'superuser' to match frontend route access
-        const targetRole = data.role === 'admin' ? 'admin' : 'superuser';
-        localStorage.setItem('userRole', targetRole);
-        localStorage.setItem('userName', data.name);
-        localStorage.setItem('userEmail', data.email);
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('token', data.token);
+      const targetRole = data.role === 'admin' ? 'admin' : data.role === 'tradie' ? 'tradie' : 'user';
+      localStorage.setItem('userRole', targetRole);
+      localStorage.setItem('userName', data.name);
+      localStorage.setItem('userEmail', data.email);
 
-        setTimeout(() => {
-          if (targetRole === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/user-dashboard');
-          }
-        }, 1000);
-        return;
-      }
+      setTimeout(() => {
+        if (targetRole === 'admin') {
+          navigate('/admin');
+        } else if (targetRole === 'tradie') {
+          navigate('/tradie-dashboard');
+        } else {
+          navigate('/user-dashboard');
+        }
+      }, 1000);
+      return;
     } catch (apiError) {
       console.warn('Backend login connection failed, falling back to static env credentials...', apiError);
     }
@@ -65,7 +57,7 @@ const Login = () => {
     setTimeout(() => {
       if (email === superUserEmail && password === superUserPass) {
         localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userRole', 'superuser');
+        localStorage.setItem('userRole', 'user');
         navigate('/user-dashboard');
       } else if (email === adminEmail && password === adminPass) {
         localStorage.setItem('isLoggedIn', 'true');

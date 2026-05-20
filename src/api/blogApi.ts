@@ -5,6 +5,11 @@ export const getBlogs = async () => {
   return response.data;
 };
 
+export const getBlogById = async (id: string) => {
+  const response = await axiosClient.get(`/api/blogs/${id}`);
+  return response.data;
+};
+
 export const createBlog = async (blog: any) => {
   const response = await axiosClient.post('/api/blogs', blog);
   return response.data;

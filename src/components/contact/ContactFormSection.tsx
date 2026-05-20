@@ -3,7 +3,7 @@ import { Mail, MapPin, Phone, CheckCircle2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 const contactItems = [
-  { icon: Mail, label: "Email", value: "hello@mylocalpro.com.au" },
+  { icon: Mail, label: "Email", value: "contactmylocalpro@gmail.com" },
   { icon: Phone, label: "Phone", value: "1300 555 010" },
   { icon: MapPin, label: "Office", value: "Hobart, MyLocalPro" },
 ];

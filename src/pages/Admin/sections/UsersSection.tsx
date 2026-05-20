@@ -1,29 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Swal from 'sweetalert2';
 import { Users, Briefcase, Mail, ShieldCheck, ShieldAlert, Clock, Trash2, Edit2 } from 'lucide-react';
-
-const dummyUsers = [
-  { id: 1, name: "Alexander Mitchell", email: "alex.m@example.com", role: "Tradie", status: "Verified", joined: "12 May 2024", avatar: "https://i.pravatar.cc/150?u=1" },
-  { id: 2, name: "Sarah Jenkins", email: "sarah.j@example.com", role: "User", status: "Verified", joined: "10 May 2024", avatar: "https://i.pravatar.cc/150?u=2" },
-  { id: 3, name: "Marcus Thompson", email: "m.thompson@example.com", role: "Tradie", status: "Pending", joined: "08 May 2024", avatar: "https://i.pravatar.cc/150?u=3" },
-  { id: 4, name: "Emily Roberts", email: "emily.r@example.com", role: "User", status: "Verified", joined: "05 May 2024", avatar: "https://i.pravatar.cc/150?u=4" },
-  { id: 5, name: "David Wilson", email: "david.w@example.com", role: "Tradie", status: "Verified", joined: "01 May 2024", avatar: "https://i.pravatar.cc/150?u=5" },
-  { id: 6, name: "Jessica Taylor", email: "jess.t@example.com", role: "User", status: "Verified", joined: "28 Apr 2024", avatar: "https://i.pravatar.cc/150?u=6" },
-  { id: 7, name: "Ryan Cooper", email: "ryan.c@example.com", role: "Tradie", status: "Verified", joined: "25 Apr 2024", avatar: "https://i.pravatar.cc/150?u=7" },
-  { id: 8, name: "Olivia Martin", email: "olivia.m@example.com", role: "User", status: "Verified", joined: "22 Apr 2024", avatar: "https://i.pravatar.cc/150?u=8" },
-  { id: 9, name: "Nathan Hayes", email: "nathan.h@example.com", role: "Tradie", status: "Pending", joined: "20 Apr 2024", avatar: "https://i.pravatar.cc/150?u=9" },
-  { id: 10, name: "Sophia Anderson", email: "sophia.a@example.com", role: "User", status: "Verified", joined: "18 Apr 2024", avatar: "https://i.pravatar.cc/150?u=10" },
-  { id: 11, name: "Liam O'Connor", email: "liam.oc@example.com", role: "Tradie", status: "Verified", joined: "15 Apr 2024", avatar: "https://i.pravatar.cc/150?u=11" },
-  { id: 12, name: "Isabella Garcia", email: "isabella.g@example.com", role: "User", status: "Verified", joined: "12 Apr 2024", avatar: "https://i.pravatar.cc/150?u=12" },
-  { id: 13, name: "Ethan Wright", email: "ethan.w@example.com", role: "Tradie", status: "Verified", joined: "10 Apr 2024", avatar: "https://i.pravatar.cc/150?u=13" },
-  { id: 14, name: "Mia Johnson", email: "mia.j@example.com", role: "User", status: "Verified", joined: "08 Apr 2024", avatar: "https://i.pravatar.cc/150?u=14" },
-  { id: 15, name: "Noah Campbell", email: "noah.c@example.com", role: "Tradie", status: "Verified", joined: "05 Apr 2024", avatar: "https://i.pravatar.cc/150?u=15" },
-  { id: 16, name: "Ava Brown", email: "ava.b@example.com", role: "User", status: "Verified", joined: "02 Apr 2024", avatar: "https://i.pravatar.cc/150?u=16" },
-];
+import { getUsers, updateUser, deleteUser } from '../../../api/userApi';
+import LoadingScreen from '../../../components/common/LoadingScreen';
 
 const UsersSection = () => {
-  const [users, setUsers] = useState(dummyUsers);
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await getUsers();
+        const mapped = data.map((u: any) => ({
+          id: u._id,
+          name: u.name || `${u.firstName} ${u.lastName}`,
+          email: u.email,
+          role: u.role.charAt(0).toUpperCase() + u.role.slice(1),
+          status: u.status || 'Verified',
+          joined: new Date(u.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+          avatar: u.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || u.firstName)}&background=097DDD&color=fff`
+        }));
+        setUsers(mapped);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const totalMembers = users.length;
   const activeTradies = users.filter(u => u.role === 'Tradie' && u.status === 'Verified').length;
@@ -68,7 +75,7 @@ const UsersSection = () => {
         const role = (document.getElementById('swal-user-role') as HTMLSelectElement).value;
         return { status, role };
       }
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
         const { status, role } = result.value;
 
@@ -89,25 +96,35 @@ const UsersSection = () => {
               }
               return reason;
             }
-          }).then((blockResult) => {
+          }).then(async (blockResult) => {
             if (blockResult.isConfirmed) {
-              setUsers(users.map(u => u.id === user.id ? { ...u, status: 'Blocked', role } : u));
-              Swal.fire({
-                title: 'Account Blocked',
-                text: `Account has been blocked. Reason logged: "${blockResult.value}"`,
-                icon: 'warning',
-                confirmButtonColor: '#097DDD',
-              });
+              try {
+                await updateUser(user.id, { role: role.toLowerCase(), status: 'Blocked' });
+                setUsers(users.map(u => u.id === user.id ? { ...u, status: 'Blocked', role } : u));
+                Swal.fire({
+                  title: 'Account Blocked',
+                  text: `Account has been blocked. Reason logged: "${blockResult.value}"`,
+                  icon: 'warning',
+                  confirmButtonColor: '#097DDD',
+                });
+              } catch (error: any) {
+                Swal.fire('Error', error.response?.data?.message || 'Failed to block account.', 'error');
+              }
             }
           });
         } else {
-          setUsers(users.map(u => u.id === user.id ? { ...u, status, role } : u));
-          Swal.fire({
-            title: 'Changes Applied!',
-            text: 'Member details have been updated successfully.',
-            icon: 'success',
-            confirmButtonColor: '#097DDD',
-          });
+          try {
+            await updateUser(user.id, { role: role.toLowerCase(), status });
+            setUsers(users.map(u => u.id === user.id ? { ...u, status, role } : u));
+            Swal.fire({
+              title: 'Changes Applied!',
+              text: 'Member details have been updated successfully.',
+              icon: 'success',
+              confirmButtonColor: '#097DDD',
+            });
+          } catch (error: any) {
+             Swal.fire('Error', error.response?.data?.message || 'Failed to update account.', 'error');
+          }
         }
       }
     });
@@ -132,18 +149,25 @@ const UsersSection = () => {
         }
         return reason;
       }
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        setUsers(users.filter(u => u.id !== user.id));
-        Swal.fire({
-          title: 'Account Removed',
-          text: `Member account has been deleted. Reason logged: "${result.value}"`,
-          icon: 'success',
-          confirmButtonColor: '#097DDD',
-        });
+        try {
+          await deleteUser(user.id);
+          setUsers(users.filter(u => u.id !== user.id));
+          Swal.fire({
+            title: 'Account Removed',
+            text: `Member account has been deleted. Reason logged: "${result.value}"`,
+            icon: 'success',
+            confirmButtonColor: '#097DDD',
+          });
+        } catch (error: any) {
+          Swal.fire('Error', error.response?.data?.message || 'Failed to remove account.', 'error');
+        }
       }
     });
   };
+
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <motion.div key="users" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">

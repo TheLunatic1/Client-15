@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +13,8 @@ import UserProfileSection from './sections/user/UserProfileSection';
 import UserSecuritySection from './sections/user/UserSecuritySection';
 // import UserJobSection from './sections/user/UserJobSection';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
+import axiosClient from '../../api/axios';
+import LoadingScreen from '../../components/common/LoadingScreen';
 
 // Premium Modal Component with Glassmorphism
 const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText, type = 'danger' }: any) => {
@@ -91,13 +95,40 @@ const SuperUserDashboard = () => {
   };
   */
 
-  const userData = {
-    name: localStorage.getItem('userName') || "Erin Barr Qui saepe excepturi",
-    email: localStorage.getItem('userEmail') || "superuser@mylocalpro.com",
-    phone: "+1 9781785905",
-    avatar: `https://i.pravatar.cc/150?u=${localStorage.getItem('userEmail') || "superuser"}`,
-    location: "Greater Hobart, TAS"
+  const [userData, setUserData] = useState<any>({
+    name: localStorage.getItem('userName') || "",
+    email: localStorage.getItem('userEmail') || "",
+    phone: "",
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(localStorage.getItem('userName') || "User")}&background=097DDD&color=fff`,
+    location: ""
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await axiosClient.get('/api/users/profile');
+      const user = response.data;
+      setUserData({
+        name: user.name || `${user.firstName} ${user.lastName}`,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone || "",
+        avatar: user.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.firstName)}&background=097DDD&color=fff`,
+        location: `${user.city ? user.city + ', ' : ''}${user.state || ''}`
+      });
+    } catch (error) {
+      console.error("Failed to fetch profile", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
@@ -224,7 +255,7 @@ const SuperUserDashboard = () => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {activeTab === 'profile' && <UserProfileSection userData={userData} />}
+              {activeTab === 'profile' && <UserProfileSection userData={userData} onUpdate={fetchProfile} />}
               {activeTab === 'account' && <UserSecuritySection />}
               {/* {activeTab === 'jobpost' && <UserJobSection selectedImage={selectedImage} onImageChange={handleImageChange} />} */}
             </motion.div>

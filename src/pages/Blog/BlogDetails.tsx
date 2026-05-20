@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Link as LinkIcon, ChevronRight } from 'lucide-react';
+import { Calendar, Link as LinkIcon, ChevronRight, Loader2 } from 'lucide-react';
 
 const Facebook = (props: any) => (
   <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -13,46 +14,48 @@ const Twitter = (props: any) => (
   </svg>
 );
 import { Link, useParams } from 'react-router-dom';
+import { getBlogById } from '../../api/blogApi';
 
 const BlogDetails = () => {
-  useParams();
+  const { id } = useParams<{ id: string }>();
+  const [post, setPost] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data for the blog post - in a real app, you'd fetch this based on the ID
-  const post = {
-    id: 1,
-    title: "How Much Does Plumbing Cost in Australia?",
-    category: "PLUMBING",
-    author: {
-      name: "Marcus Thorne",
-      role: "Trade Expert",
-      avatar: "https://i.pravatar.cc/150?u=marcus"
-    },
-    date: "15 May 2026",
-    readTime: "4 min read",
-    image: "https://images.unsplash.com/photo-1504148455328-c6769171d3d2?auto=format&fit=crop&q=80&w=1600",
-    excerpt: "Learn how much plumbing costs in Australia. Explore pricing factors, common jobs, hourly rates, and tips to save money on your next project.",
-    content: `
-      <p>Plumbing issues can arise at any time, and understanding the potential costs involved is essential for every Australian homeowner. Whether it's a simple leaky tap or a complete bathroom renovation, being prepared for the financial aspect helps in making informed decisions.</p>
-      
-      <h3>1. Standard Hourly Rates</h3>
-      <p>In Australia, most plumbers charge an hourly rate ranging from <strong>$80 to $150</strong>, depending on their experience, location, and the complexity of the job. It's important to note that many plumbers also charge a 'call-out fee', which typically covers the first 30 minutes of work or travel time.</p>
-      
-      <div class="bg-[#f8fafc] border-l-4 border-[#097DDD] p-8 my-10 rounded-r-2xl">
-        <p class="text-[#0A1830] font-bold italic text-lg mb-0">"Always ensure your plumber is licensed and insured. While it might be tempting to go with the cheapest quote, quality workmanship saves you thousands in the long run."</p>
+  useEffect(() => {
+    if (!id) return;
+    getBlogById(id)
+      .then((data) => setPost(data))
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050f26]">
+        <Loader2 size={40} className="text-[#097DDD] animate-spin" />
       </div>
+    );
+  }
 
-      <h3>2. Common Plumbing Job Costs</h3>
-      <ul>
-        <li><strong>Leaky Taps:</strong> $80 – $150</li>
-        <li><strong>Toilet Repairs:</strong> $150 – $300</li>
-        <li><strong>Hot Water System Installation:</strong> $1,500 – $4,000</li>
-        <li><strong>Blocked Drains:</strong> $150 – $500 (depending on equipment needed)</li>
-      </ul>
+  if (!post) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050f26]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">Blog post not found</h2>
+          <Link to="/blog" className="text-[#097DDD] hover:underline">Return to Blog</Link>
+        </div>
+      </div>
+    );
+  }
 
-      <h3>3. Factors Affecting the Price</h3>
-      <p>Several factors can influence the final bill. Emergency call-outs after hours or on weekends will naturally incur higher fees. The accessibility of the plumbing, the materials required, and whether specialized equipment like drain cameras or jetters are needed will also play a role.</p>
-    `
-  };
+  const authorName = post.writer || post.author?.name || 'System Admin';
+  const postDate = post.createdAt
+    ? new Date(post.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+    : post.date || '';
+  const category = post.category?.name || post.category || 'BLOG';
+  const image = post.image || 'https://images.unsplash.com/photo-1504148455328-c6769171d3d2?auto=format&fit=crop&q=80&w=1600';
+  const tags = post.tags || [category];
+
 
   return (
     <div className="min-h-screen bg-[#050f26] text-white font-sans">
@@ -60,7 +63,7 @@ const BlogDetails = () => {
       <section className="relative pt-44 pb-32 overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src={post.image}
+            src={image}
             className="w-full h-full object-cover opacity-20"
             alt={post.title}
           />
@@ -75,7 +78,7 @@ const BlogDetails = () => {
           >
             <Link to="/blog" className="text-[#097DDD] text-[10px] font-black uppercase tracking-widest hover:opacity-70 transition-opacity">Blog</Link>
             <ChevronRight size={12} className="text-white/20" />
-            <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{post.category}</span>
+            <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{category}</span>
           </motion.div>
 
           <motion.h1
@@ -93,19 +96,19 @@ const BlogDetails = () => {
             className="flex flex-wrap items-center gap-8 py-8 border-y border-white/10"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full border-2 border-[#097DDD] p-0.5">
-                <img src={post.author.avatar} className="w-full h-full rounded-full object-cover" alt={post.author.name} />
+              <div className="w-12 h-12 rounded-full border-2 border-[#097DDD] p-0.5 bg-[#097DDD]/20 flex items-center justify-center">
+                <span className="text-white font-black text-lg">{authorName[0]}</span>
               </div>
               <div>
-                <p className="text-sm font-black text-white">{post.author.name}</p>
-                <p className="text-[10px] font-black text-[#097DDD] uppercase tracking-widest">{post.author.role}</p>
+                <p className="text-sm font-black text-white">{authorName}</p>
+                <p className="text-[10px] font-black text-[#097DDD] uppercase tracking-widest">Author</p>
               </div>
             </div>
 
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2.5">
                 <Calendar size={16} className="text-white/20" />
-                <span className="text-xs font-bold text-white/50">{post.date}</span>
+                <span className="text-xs font-bold text-white/50">{postDate}</span>
               </div>
             </div>
           </motion.div>
@@ -121,16 +124,15 @@ const BlogDetails = () => {
             transition={{ delay: 0.3 }}
             className="bg-white rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] overflow-hidden"
           >
-            {/* Share Sidebar (Desktop Only) */}
             <div className="p-8 md:p-16 lg:p-20">
               <div className="prose prose-slate max-w-none prose-headings:text-[#0A1830] prose-headings:font-black prose-p:text-[#5a6a85] prose-p:leading-[1.8] prose-p:font-medium prose-strong:text-[#0A1830] prose-li:text-[#5a6a85] prose-li:font-medium">
-                <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                <div dangerouslySetInnerHTML={{ __html: post.content || `<p>${post.excerpt || ''}</p>` }} />
               </div>
 
               {/* Tag Cloud & Share */}
               <div className="mt-16 pt-16 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8">
                 <div className="flex flex-wrap gap-2">
-                  {['Cost Guide', 'Plumbing', 'Australia', 'Home Advice'].map(tag => (
+                  {tags.map((tag: string) => (
                     <span key={tag} className="px-4 py-2 bg-[#F4F7FA] text-[#64748b] text-[10px] font-black uppercase tracking-widest rounded-lg">#{tag}</span>
                   ))}
                 </div>
@@ -147,13 +149,15 @@ const BlogDetails = () => {
 
           {/* Author Box */}
           <div className="mt-12 bg-white/5 border border-white/10 rounded-[2rem] p-10 flex flex-col md:flex-row items-center gap-8">
-            <img src={post.author.avatar} className="w-24 h-24 rounded-full border-4 border-white/5" alt={post.author.name} />
+            <div className="w-24 h-24 rounded-full border-4 border-white/5 bg-[#097DDD]/20 flex items-center justify-center text-white text-3xl font-black">
+              {authorName[0]}
+            </div>
             <div className="text-center md:text-left">
-              <h4 className="text-xl font-black mb-2">{post.author.name}</h4>
+              <h4 className="text-xl font-black mb-2">{authorName}</h4>
               <p className="text-white/40 text-sm leading-relaxed mb-4">
-                Marcus is a seasoned trade industry expert with over 15 years of experience in connecting homeowners with the right professionals across MyLocalPro and Australia.
+                A trade industry expert connecting homeowners with the right professionals across MyLocalPro Australia.
               </p>
-              <Link to="/find-a-pro" className="text-[#097DDD] text-[10px] font-black uppercase tracking-widest hover:underline">View all posts by Marcus</Link>
+              <Link to="/blog" className="text-[#097DDD] text-[10px] font-black uppercase tracking-widest hover:underline">View all posts</Link>
             </div>
           </div>
         </div>
@@ -163,3 +167,4 @@ const BlogDetails = () => {
 };
 
 export default BlogDetails;
+

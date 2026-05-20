@@ -3,7 +3,7 @@ import { isTokenValid } from '../../utils/authUtils';
 
 interface ProtectedRouteProps {
   element: React.ReactNode;
-  requiredRole?: 'admin' | 'superuser' | 'tradie';
+  requiredRole?: 'admin' | 'user' | 'tradie';
 }
 
 const ProtectedRoute = ({ element, requiredRole }: ProtectedRouteProps) => {

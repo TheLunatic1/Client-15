@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +18,8 @@ import {
 import Swal from 'sweetalert2';
 // @ts-ignore
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
+import axiosClient from '../../api/axios';
+import LoadingScreen from '../../components/common/LoadingScreen';
 
 // Simulated initial data
 const initialData = {
@@ -96,11 +102,77 @@ const TradieDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [formData, setFormData] = useState(initialData);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Security Center States
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     if (location.state && (location.state as any).activeTab) {
       setActiveTab((location.state as any).activeTab);
-    }
+    } 
+    
+    // Fetch data from backend
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [profileRes, statsRes, businessesRes] = await Promise.all([
+          axiosClient.get('/api/users/profile'),
+          axiosClient.get('/api/stats/tradie'),
+          axiosClient.get('/api/businesses/my/listings')
+        ]);
+        
+        const profile = profileRes.data;
+        const stats = statsRes.data;
+        const businesses = businessesRes.data;
+        
+        const mainBusiness = businesses.length > 0 ? businesses[0] : {};
+
+        setFormData({
+          contact: {
+            firstName: profile.firstName || '',
+            lastName: profile.lastName || '',
+            email: profile.email || '',
+            phone: profile.phone || '',
+            address: profile.address || '',
+            city: profile.city || '',
+            state: profile.state || '',
+            postcode: profile.postcode || ''
+          },
+          business: {
+            id: mainBusiness._id || '',
+            businessName: mainBusiness.businessName || '',
+            abn: mainBusiness.abn || '',
+            category: mainBusiness.category || '',
+            location: mainBusiness.location || '',
+            suburb: mainBusiness.suburb || '',
+            servicesOffered: mainBusiness.servicesOffered || '',
+            website: mainBusiness.website || '',
+            yearsInBusiness: mainBusiness.yearsInBusiness || ''
+          } as any,
+          businessesList: businesses.map((b: any) => ({
+            id: b._id,
+            name: b.businessName,
+            category: b.category,
+            status: b.status.charAt(0).toUpperCase() + b.status.slice(1),
+            location: b.location,
+            image: b.gallery && b.gallery.length > 0 ? b.gallery[0].url : 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800'
+          })),
+          description: {
+            shortDescription: mainBusiness.description || '',
+            longDescription: mainBusiness.longDescription || ''
+          },
+          gallery: mainBusiness.gallery || []
+        });
+      } catch (error) {
+        console.warn('Failed to load tradie data from backend, using fallback data.', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, [location.state]);
 
   const handleLogout = () => {
@@ -109,19 +181,52 @@ const TradieDashboard = () => {
     navigate('/login');
   };
 
-  const handleSave = (section: string) => {
-    Swal.fire({
-      title: 'Success!',
-      text: `${section} updated successfully.`,
-      icon: 'success',
-      confirmButtonColor: '#097DDD',
-      background: '#ffffff',
-      color: '#0f172a',
-      customClass: {
-        popup: 'rounded-[2rem]',
-        confirmButton: 'rounded-xl font-bold uppercase tracking-widest text-[10px] px-8 py-4'
+  const handleSave = async (section: string) => {
+    try {
+      if (section === 'Password') {
+        if (newPassword !== confirmPassword) {
+          Swal.fire({ title: 'Error', text: 'Passwords do not match', icon: 'error', confirmButtonColor: '#097DDD' });
+          return;
+        }
+        await axiosClient.put('/api/users/profile/password', { currentPassword, newPassword });
+        setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+      } else if (section === 'Business Profile') {
+        // Update User Profile
+        await axiosClient.put('/api/users/profile', formData.contact);
+        
+        // Update Business if ID exists
+        const bId = (formData.business as any).id;
+        if (bId) {
+          await axiosClient.put(`/api/businesses/${bId}`, {
+            businessName: formData.business.businessName,
+            category: formData.business.category,
+            location: formData.business.location,
+            description: formData.description.shortDescription,
+            // Include other mapped fields if API supports them
+          });
+        }
       }
-    });
+
+      Swal.fire({
+        title: 'Success!',
+        text: `${section} updated successfully.`,
+        icon: 'success',
+        confirmButtonColor: '#097DDD',
+        background: '#ffffff',
+        color: '#0f172a',
+        customClass: {
+          popup: 'rounded-[2rem]',
+          confirmButton: 'rounded-xl font-bold uppercase tracking-widest text-[10px] px-8 py-4'
+        }
+      });
+    } catch (error: any) {
+      Swal.fire({
+        title: 'Error',
+        text: error.response?.data?.message || 'Failed to update',
+        icon: 'error',
+        confirmButtonColor: '#097DDD'
+      });
+    }
   };
 
   const handleInputChange = (section: keyof typeof formData, field: string, value: string) => {
@@ -147,6 +252,7 @@ const TradieDashboard = () => {
   const rejected = formData.businessesList.filter(b => b.status === 'Rejected').length;
 
   const renderContent = () => {
+    if (isLoading) return <LoadingScreen />;
     switch (activeTab) {
       case 'overview':
         return (
@@ -621,6 +727,8 @@ const TradieDashboard = () => {
                   <input
                     type="password"
                     placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
                     className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
                   />
                 </div>
@@ -632,6 +740,8 @@ const TradieDashboard = () => {
                   <input
                     type="password"
                     placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
                     className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
                   />
                 </div>
@@ -643,6 +753,8 @@ const TradieDashboard = () => {
                   <input
                     type="password"
                     placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
                   />
                 </div>
@@ -712,18 +824,9 @@ const TradieDashboard = () => {
       {/* Main Content Area */}
       <main className="flex-grow overflow-y-auto custom-scrollbar">
         {/* Top Header */}
-        <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-5 py-2.5 w-full max-w-xl group focus-within:border-[#097DDD]/30 transition-all">
-            <Search className="text-slate-400 group-focus-within:text-[#097DDD] transition-colors" size={18} />
-            <input
-              type="text"
-              placeholder="Search your tools, jobs or profile..."
-              className="bg-transparent border-none focus:outline-none text-sm font-medium ml-4 w-full text-slate-600 placeholder:text-slate-400"
-            />
-          </div>
-
+        <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4 border-l border-slate-100 pl-6 ml-2">
+            <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{formData.contact.firstName} {formData.contact.lastName}</p>
                 <p className="text-[9px] text-[#097DDD] font-black uppercase tracking-widest">Tradie Profile</p>

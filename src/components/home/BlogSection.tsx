@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowRight, Tag } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
+import { getBlogs } from "../../api/blogApi";
 
 const CARD_W = 360;
 const GAP = 24;
@@ -72,6 +74,25 @@ const BLOG_POSTS = [
 
 const BlogSection = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [posts, setPosts] = useState<any[]>(BLOG_POSTS);
+
+  useEffect(() => {
+    getBlogs().then((data: any[]) => {
+      if (data && data.length > 0) {
+        setPosts(data.map((b) => ({
+          id: b._id || b.id,
+          title: b.title,
+          category: (b.category?.name || b.category || 'BLOG').toUpperCase(),
+          image: b.image || BLOG_POSTS[0].image,
+          excerpt: b.excerpt || '',
+          date: b.createdAt
+            ? new Date(b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'Unknown',
+          publisher: b.writer || b.author || 'System Admin',
+        })));
+      }
+    }).catch(() => { /* keep fallback */ });
+  }, []);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -139,7 +160,7 @@ const BlogSection = () => {
           msOverflowStyle: "none",
         }}
       >
-        {BLOG_POSTS.map((post, idx) => (
+        {posts.map((post, idx) => (
           <motion.div
             key={post.id}
             initial={{ opacity: 0, y: 24 }}
