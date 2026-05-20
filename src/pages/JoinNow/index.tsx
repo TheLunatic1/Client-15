@@ -52,14 +52,13 @@ const JoinNow = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await axiosClient.post('/api/users/register', {
+      await axiosClient.post('/api/users/register', {
         firstName,
         lastName,
         email,
         password,
         role: 'user'
       });
-      const data = response.data;
 
       Swal.fire({
         title: 'Success',

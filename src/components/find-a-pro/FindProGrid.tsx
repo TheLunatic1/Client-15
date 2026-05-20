@@ -107,7 +107,7 @@ export const FindProGrid = () => {
                   </p>
 
                   <div className="flex flex-wrap gap-2 mb-8">
-                    {pro.tags.map((tag) => (
+                    {pro.tags.map((tag: string) => (
                       <span key={tag} className="text-[10px] font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
                         {tag}
                       </span>

@@ -7,7 +7,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Briefcase, LogOut,
-  AlertCircle, Search,
+  AlertCircle,
   LayoutDashboard,
   FileText, Image as ImageIcon,
   Save, Plus, Trash2, Camera, Phone, Mail, MapPin, Globe, CheckCircle, Clock, ShieldCheck, Lock, Edit2
@@ -118,14 +118,13 @@ const TradieDashboard = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [profileRes, statsRes, businessesRes] = await Promise.all([
+        const [profileRes, , businessesRes] = await Promise.all([
           axiosClient.get('/api/users/profile'),
           axiosClient.get('/api/stats/tradie'),
           axiosClient.get('/api/businesses/my/listings')
         ]);
         
         const profile = profileRes.data;
-        const stats = statsRes.data;
         const businesses = businessesRes.data;
         
         const mainBusiness = businesses.length > 0 ? businesses[0] : {};

@@ -15,7 +15,7 @@ import { getAdminStats } from '../../api/statsApi';
 import axiosClient from '../../api/axios';
 import {
   LayoutDashboard, Users, Briefcase, Settings, LayoutGrid,
-  Search, LogOut, Shield, MapPin, FileText, Clock,
+  LogOut, Shield, MapPin, FileText, Clock,
   Camera, Upload, X
 } from 'lucide-react';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
@@ -283,7 +283,7 @@ const AdminDashboard = () => {
 
     if (result.isConfirmed) {
       try {
-        await apiDeleteBlog(id);
+        await apiDeleteBlog(String(id));
         setBlogsRefreshKey(prev => prev + 1);
         Swal.fire('Deleted!', 'Post has been removed.', 'success');
       } catch (err: any) {

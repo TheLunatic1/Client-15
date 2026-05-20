@@ -4,11 +4,10 @@ import { Search, Trash2, MapPin, Star, Loader2 } from 'lucide-react';
 interface ListingsSectionProps {
   professionals: any[];
   onDelete: (id: string) => void;
-  onEdit?: (pro: any) => void;
   isLoading?: boolean;
 }
 
-const ListingsSection = ({ professionals, onDelete, onEdit, isLoading }: ListingsSectionProps) => {
+const ListingsSection = ({ professionals, onDelete, isLoading }: ListingsSectionProps) => {
   return (
     <motion.div key="active" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
       <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">

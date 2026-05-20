@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Mail, MapPin, ArrowRight, ShieldCheck, Star } from "lucide-react";
 import logoImg from "../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png";
 import { getLocations } from "../../api/locationApi";
@@ -21,8 +21,6 @@ const Instagram = (props: any) => (
 );
 
 const Footer = () => {
-  const navigate = useNavigate();
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const [locations, setLocations] = useState<{ city: string; region: string }[]>([]);
 
   useEffect(() => {
@@ -32,15 +30,6 @@ const Footer = () => {
       })
       .catch(() => {});
   }, []);
-
-  const handlePostJobClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (isLoggedIn) {
-      navigate('/user-dashboard', { state: { activeTab: 'jobpost' } });
-    } else {
-      navigate('/login');
-    }
-  };
 
   return (
     <footer className="bg-[#050f26] relative overflow-visible mt-32">
