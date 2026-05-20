@@ -1,0 +1,381 @@
+import { useParams, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { 
+  MapPin, Star, Phone, Mail, Globe, 
+  CheckCircle2,
+  Briefcase, Shield, Clock, Camera,
+  MessageSquare, UserCheck, HardHat
+} from "lucide-react";
+import { professionals } from "../../data/professionals";
+
+// Brand icons were removed in Lucide v1.0, so we define them locally in the same style
+const Facebook = (props: any) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const Instagram = (props: any) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const Twitter = (props: any) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 4s-1 2.17-2.41 3.06a8 8 0 1 1-11.58 8.06l-.31 1.17A10.12 10.12 0 0 1 2 17.64a10.86 10.86 0 0 0 8.23 2.31 10.88 10.88 0 0 0 10.79-9.13A7.37 7.37 0 0 0 22 4Z" />
+  </svg>
+);
+
+// Mock work gallery images
+import work1 from "../../assets/section images/electrician-installing-laying-electrical-cables-ceiling-inside-house.jpg";
+import work2 from "../../assets/section images/imgi_16_professional_tradie.png";
+import work3 from "../../assets/section images/jamie-street-qWYvQMIJyfE-unsplash.jpg";
+
+const BusinessProfile = () => {
+  const { id } = useParams<{ id: string }>();
+  const pro = professionals.find(p => p.id === Number(id));
+
+  if (!pro) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050f26]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">Professional not found</h2>
+          <Link to="/find-a-pro" className="text-primary hover:underline">Return to Search</Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Use professional's gallery or fall back to mock images
+  const workGallery = pro.gallery || [work1, work2, work3, pro.image];
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* ── Hero Header ── */}
+      <section className="relative h-[45vh] min-h-[400px] bg-[#0D1F43] overflow-hidden">
+        {/* Background Image with Parallax & Blur */}
+        <motion.div 
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.4 }}
+          transition={{ duration: 1.5 }}
+          className="absolute inset-0"
+        >
+          <img src={pro.image} alt="Cover" className="w-full h-full object-cover blur-sm scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-[#0D1F43]/80 to-[#0D1F43]/40" />
+        </motion.div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full relative z-10">
+          <div className="flex flex-col justify-end h-full pb-12">
+             {/* Breadcrumbs */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-2 text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-8"
+            >
+              <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+              <span className="text-white/20">/</span>
+              <Link to="/find-a-pro" className="hover:text-primary transition-colors">Find a Pro</Link>
+              <span className="text-white/20">/</span>
+              <span className="text-white">Profile</span>
+            </motion.div>
+
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+              <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
+                {/* Logo/Avatar */}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="w-32 h-32 md:w-44 md:h-44 rounded-[2.5rem] bg-white p-2 shadow-2xl relative overflow-hidden"
+                >
+                  <img src={pro.logo || pro.image} alt={pro.name} className="w-full h-full object-cover rounded-[2rem]" />
+                  <div className="absolute bottom-4 right-4 bg-emerald-500 rounded-full p-1.5 border-4 border-white shadow-lg">
+                    <CheckCircle2 size={16} className="text-white" />
+                  </div>
+                </motion.div>
+
+                <div className="space-y-1">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex flex-wrap items-center gap-3 mb-4"
+                  >
+                    <span className="px-3.5 py-1.5 rounded-full bg-primary/20 backdrop-blur-md border border-primary/30 text-primary text-[10px] font-black uppercase tracking-wider">
+                      {pro.category}
+                    </span>
+                    <span className="px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                      <Star size={12} className="text-yellow-400 fill-yellow-400" />
+                      {pro.rating} Rating
+                    </span>
+                  </motion.div>
+                  <motion.h1 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-4xl md:text-6xl font-black text-white leading-tight mb-2"
+                  >
+                    {pro.name}
+                  </motion.h1>
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="flex items-center gap-2 text-white/70"
+                  >
+                    <MapPin size={18} className="text-primary" />
+                    <span className="text-sm font-bold tracking-wide">{pro.location}</span>
+                  </motion.div>
+                </div>
+              </div>
+
+              {/* Action Stats */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex gap-8 items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 px-10 shadow-2xl"
+              >
+                <div className="text-center">
+                  <p className="text-2xl font-black text-white">{pro.reviews}</p>
+                  <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">Reviews</p>
+                </div>
+                <div className="w-px h-10 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-2xl font-black text-white">{pro.experience.split('+')[0]}+</p>
+                  <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">Years</p>
+                </div>
+                <div className="w-px h-10 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-2xl font-black text-primary">A+</p>
+                  <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">Grade</p>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Content Grid ── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 pb-32">
+        <div className="grid lg:grid-cols-12 gap-10">
+          
+          {/* Left Column (8 cols) */}
+          <div className="lg:col-span-8 space-y-10">
+            
+            {/* About Section */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-white rounded-[3rem] p-10 md:p-14 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100"
+            >
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+                  <Shield size={24} />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-black text-[#0D1F43]">About the Business</h2>
+              </div>
+              <p className="text-slate-500 text-lg leading-[1.8] mb-12">
+                {pro.description} Our team is dedicated to providing the highest quality of service with a focus on safety, reliability, and customer satisfaction. Whether it's a small repair or a large-scale project, we bring professional expertise to every job.
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-[#F8FAFC] rounded-[2rem] p-8 border border-slate-100 flex items-start gap-5">
+                  <div className="h-14 w-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-primary shrink-0">
+                    <UserCheck size={28} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-[#0D1F43] uppercase tracking-wider mb-2">Verified Expert</h4>
+                    <p className="text-slate-500 text-sm leading-relaxed">Identity and professional credentials verified by MyLocalPro Australia.</p>
+                  </div>
+                </div>
+                <div className="bg-[#F8FAFC] rounded-[2rem] p-8 border border-slate-100 flex items-start gap-5">
+                  <div className="h-14 w-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-primary shrink-0">
+                    <HardHat size={28} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-[#0D1F43] uppercase tracking-wider mb-2">Fully Insured</h4>
+                    <p className="text-slate-500 text-sm leading-relaxed">This professional carries comprehensive public liability insurance for your peace of mind.</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Services Offered */}
+            {pro.services && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="bg-white rounded-[3rem] p-10 md:p-14 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100"
+              >
+                <div className="flex items-center gap-4 mb-10">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+                    <Briefcase size={24} />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-black text-[#0D1F43]">Services Offered</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                  {pro.services.map((service, i) => (
+                    <div key={i} className="flex items-center gap-4 group">
+                      <div className="h-2 w-2 rounded-full bg-primary/30 group-hover:bg-primary transition-colors" />
+                      <span className="text-base font-bold text-slate-600 group-hover:text-[#0D1F43] transition-colors">{service}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Gallery Section */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-white rounded-[3rem] p-10 md:p-14 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100"
+            >
+              <div className="flex items-center justify-between gap-6 mb-10">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+                    <Camera size={24} />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-black text-[#0D1F43]">Recent Work Gallery</h2>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {workGallery.map((img, i) => (
+                  <div key={i} className={`relative overflow-hidden rounded-[2rem] cursor-pointer group h-[240px]`}>
+                    <img src={img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Work" />
+                    <div className="absolute inset-0 bg-[#0D1F43]/0 group-hover:bg-[#0D1F43]/30 transition-all flex items-center justify-center">
+                       <Star className="text-white opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-300" size={32} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Service Areas */}
+            {pro.serviceAreas && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="bg-[#0D1F43] rounded-[3rem] p-10 md:p-14 shadow-2xl text-white overflow-hidden relative"
+              >
+                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 blur-[100px] rounded-full -mr-48 -mt-48" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-10">
+                    <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary">
+                      <MapPin size={24} />
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-black">Service Footprint</h2>
+                  </div>
+                  <p className="text-white/50 mb-8 font-medium leading-relaxed max-w-xl">
+                    We proudly serve the following regions across Australia, providing rapid response times and reliable local expertise.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {pro.serviceAreas.map((area, i) => (
+                      <span key={i} className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-bold hover:bg-primary transition-colors cursor-default">
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Right Column (4 cols) */}
+          <div className="lg:col-span-4 space-y-8">
+            
+            {/* Sticky Contact Box */}
+            <div className="sticky top-32 space-y-8">
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-white rounded-[3rem] p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-100 group"
+              >
+                <h3 className="text-2xl font-black text-[#0D1F43] mb-8">Contact Direct</h3>
+                
+                <div className="space-y-6 mb-10">
+                  <a href={`tel:${pro.contactPhone}`} className="flex items-center gap-5 group/item cursor-pointer">
+                      <div className="h-14 w-14 rounded-2xl bg-[#F8FAFC] border border-slate-100 flex items-center justify-center group-hover/item:bg-primary group-hover/item:text-white transition-all duration-300 text-[#0D1F43]">
+                        <Phone size={22} />
+                      </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Call Business</p>
+                      <p className="text-[15px] font-black text-[#0D1F43] tracking-tight">{pro.contactPhone}</p>
+                    </div>
+                  </a>
+                  <a href={`mailto:${pro.contactEmail}`} className="flex items-center gap-5 group/item cursor-pointer">
+                    <div className="h-14 w-14 rounded-2xl bg-[#F8FAFC] border border-slate-100 flex items-center justify-center group-hover/item:bg-primary group-hover/item:text-white transition-all duration-300 text-[#0D1F43]">
+                      <Mail size={22} />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Send Email</p>
+                      <p className="text-[15px] font-black text-[#0D1F43] tracking-tight truncate max-w-[180px]">{pro.contactEmail}</p>
+                    </div>
+                  </a>
+                  {pro.website && (
+                    <a href={`https://${pro.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-5 group/item cursor-pointer">
+                      <div className="h-14 w-14 rounded-2xl bg-[#F8FAFC] border border-slate-100 flex items-center justify-center group-hover/item:bg-primary group-hover/item:text-white transition-all duration-300 text-[#0D1F43]">
+                        <Globe size={22} />
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Website</p>
+                        <p className="text-[15px] font-black text-[#0D1F43] tracking-tight">{pro.website}</p>
+                      </div>
+                    </a>
+                  )}
+                </div>
+
+                <button className="w-full bg-[#0D1F43] hover:bg-black text-white font-black text-xs py-6 rounded-2xl transition-all shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98]">
+                  <MessageSquare size={18} />
+                  Request a Quote
+                </button>
+
+                <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-center gap-6">
+                  <a href="#" className="text-slate-300 hover:text-primary transition-colors"><Facebook size={18} /></a>
+                  <a href="#" className="text-slate-300 hover:text-primary transition-colors"><Instagram size={18} /></a>
+                  <a href="#" className="text-slate-300 hover:text-primary transition-colors"><Twitter size={18} /></a>
+                </div>
+              </motion.div>
+
+              {/* Hours Card */}
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-[3rem] p-10 shadow-[0_15px_40px_rgba(0,0,0,0.04)] border border-slate-100"
+              >
+                <div className="flex items-center gap-3 mb-8">
+                  <Clock size={20} className="text-primary" />
+                  <h3 className="text-xl font-black text-[#0D1F43]">Business Hours</h3>
+                </div>
+                <div className="space-y-5">
+                  {[
+                    { day: "Mon - Fri", hours: "8:00 AM - 6:00 PM" },
+                    { day: "Saturday", hours: "9:00 AM - 4:00 PM" },
+                    { day: "Sunday", hours: "Closed" }
+                  ].map((item) => (
+                    <div key={item.day} className="flex justify-between items-center pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{item.day}</span>
+                      <span className={`text-[13px] font-black text-[#0D1F43]`}>{item.hours}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default BusinessProfile;
