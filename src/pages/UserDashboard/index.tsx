@@ -9,6 +9,7 @@ import UserProfileSection from '../Admin/sections/user/UserProfileSection';
 import UserSecuritySection from '../Admin/sections/user/UserSecuritySection';
 import axiosClient from '../../api/axios';
 import LoadingScreen from '../../components/common/LoadingScreen';
+import { NotificationBell } from '../../components/common/NotificationBell';
 
 // ── Become a Tradie Modal ─────────────────────────────────────────────────────
 const BecomeTradieModal = ({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => void }) => (
@@ -276,12 +277,15 @@ const UserDashboard = () => {
       <main className="flex-grow overflow-y-auto custom-scrollbar">
         {/* Header — no search bar */}
         <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{userData.name}</p>
-              <p className="text-[9px] text-[#097DDD] font-black uppercase tracking-widest">Member Profile</p>
+          <div className="flex items-center gap-6">
+            <NotificationBell theme="light" />
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{userData.name}</p>
+                <p className="text-[9px] text-[#097DDD] font-black uppercase tracking-widest">Member Profile</p>
+              </div>
+              <img src={userData.avatar} className="w-10 h-10 rounded-xl object-cover border-2 border-slate-100" alt="Avatar" />
             </div>
-            <img src={userData.avatar} className="w-10 h-10 rounded-xl object-cover border-2 border-slate-100" alt="Avatar" />
           </div>
         </header>
 

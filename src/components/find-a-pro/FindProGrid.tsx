@@ -24,8 +24,8 @@ export const FindProGrid = () => {
           description: b.description || 'No description provided.',
           image: b.gallery?.[0]?.url || "https://images.unsplash.com/photo-1542013936693-884638332954?auto=format&fit=crop&q=80&w=800",
           tags: b.services?.length ? b.services : ['Professional'],
-          rating: (Math.random() * (5 - 4) + 4).toFixed(1), // placeholder
-          reviews: Math.floor(Math.random() * 50) + 1 // placeholder
+          rating: b.rating && b.rating !== '0' && b.rating !== '0.0' ? Number(b.rating).toFixed(1) : 'New',
+          reviews: b.reviews || 0
         }));
         setProfessionals(mapped);
       } catch(err) {

@@ -7,9 +7,12 @@ import {
   CheckCircle2,
   Briefcase, Shield, Clock, Camera,
   MessageSquare, UserCheck, HardHat,
-  Loader2
+  Loader2,
+  Save
 } from "lucide-react";
 import { getBusinessById } from "../../api/businessApi";
+import { reviewApi, type Review } from "../../api/reviewApi";
+import { checkSavedStatus, saveBusiness, unsaveBusiness } from "../../api/userApi";
 
 // Brand icons
 const Facebook = (props: any) => (
@@ -40,6 +43,14 @@ const BusinessProfile = () => {
   const [pro, setPro] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [newRating, setNewRating] = useState(0);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
 
   useEffect(() => {
     if (!id) return;
@@ -50,6 +61,70 @@ const BusinessProfile = () => {
       .catch(() => setError(true))
       .finally(() => setIsLoading(false));
   }, [id]);
+
+  const handleSaveBusiness = async () => {
+    if (!isLoggedIn) {
+      alert("Please log in to save businesses.");
+      return;
+    }
+    if (!pro || !pro._id) return;
+    
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        await unsaveBusiness(pro._id);
+        setIsSaved(false);
+      } else {
+        await saveBusiness(pro._id);
+        setIsSaved(true);
+      }
+    } catch (err: any) {
+      console.error('Error saving business:', err.response?.data || err);
+      alert(`Failed to update saved status: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRating) {
+      alert("Please select a rating.");
+      return;
+    }
+    if (!pro || !pro._id) return;
+
+    setIsSubmittingReview(true);
+    try {
+      const review = await reviewApi.postReview(pro._id, {
+        rating: newRating,
+        comment: newComment,
+      });
+      setReviews([review, ...reviews]);
+      setNewRating(0);
+      setNewComment('');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to submit review.");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  // Fetch reviews and saved status when business data is ready
+  useEffect(() => {
+    if (pro && pro._id) {
+      reviewApi.getReviews(pro._id)
+        .then(setReviews)
+        .catch(console.error);
+
+      if (isLoggedIn) {
+        checkSavedStatus(pro._id)
+          .then((data) => setIsSaved(data.isSaved))
+          .catch(console.error);
+      }
+    }
+  }, [pro, isLoggedIn]);
 
   if (isLoading) {
     return (
@@ -106,7 +181,7 @@ const BusinessProfile = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-[#0D1F43]/80 to-[#0D1F43]/40" />
         </motion.div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm: B-6 lg:px-8 h-full relative z-10">
           <div className="flex flex-col justify-end h-full pb-12">
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
@@ -179,7 +254,7 @@ const BusinessProfile = () => {
                 className="flex gap-8 items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 px-10 shadow-2xl"
               >
                 <div className="text-center">
-                  <p className="text-2xl font-black text-white">{pro.reviewCount || '—'}</p>
+                  <p className="text-2xl font-black text-white">{reviews.length || 0}</p>
                   <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">Reviews</p>
                 </div>
                 <div className="w-px h-10 bg-white/10" />
@@ -189,8 +264,10 @@ const BusinessProfile = () => {
                 </div>
                 <div className="w-px h-10 bg-white/10" />
                 <div className="text-center">
-                  <p className="text-2xl font-black text-primary">A+</p>
-                  <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">Grade</p>
+                  <p className="text-2xl font-black text-primary">
+                    {reviews.length > 0 ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) : 'New'}
+                  </p>
+                  <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">Rating</p>
                 </div>
               </motion.div>
             </div>
@@ -315,6 +392,120 @@ const BusinessProfile = () => {
                 ))}
               </div>
             </motion.div>
+
+            {/* Reviews Section */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-white rounded-[3rem] p-10 md:p-14 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100"
+            >
+              <div className="flex items-center gap-4 mb-10">
+                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
+                  <Star size={24} />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-black text-[#0D1F43]">Reviews ({reviews.length})</h2>
+              </div>
+
+              {/* Add Review Form */}
+              {isLoggedIn ? (
+                <div className="mb-12 bg-[#F8FAFC] rounded-[2rem] p-8 border border-slate-100">
+                  <h3 className="text-lg font-black text-[#0D1F43] mb-4">Write a Review</h3>
+                  <form onSubmit={handleSubmitReview}>
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-bold text-slate-500">Your Rating:</span>
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              type="button"
+                              key={star}
+                              onClick={() => setNewRating(star)}
+                              className="focus:outline-none transition-transform hover:scale-110 p-1"
+                            >
+                              <Star
+                                size={24}
+                                className={star <= newRating ? 'text-primary fill-primary' : 'text-slate-300'}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <textarea
+                        className="w-full bg-white border border-slate-200 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-700"
+                        placeholder="Share your experience..."
+                        rows={4}
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingReview}
+                      className="bg-primary hover:bg-primary/90 text-white font-black text-xs py-4 px-8 rounded-xl transition-all shadow-lg uppercase tracking-[0.2em] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmittingReview ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
+                      {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="mb-12 bg-[#F8FAFC] rounded-[2rem] p-8 border border-slate-100 text-center">
+                  <p className="text-slate-500 mb-4 font-medium">Please log in to write a review for this business.</p>
+                  <Link to="/login" className="inline-block bg-[#0D1F43] hover:bg-black text-white font-black text-xs py-3 px-6 rounded-xl transition-all uppercase tracking-[0.2em]">
+                    Log In
+                  </Link>
+                </div>
+              )}
+
+              {/* Review List */}
+              <div className="space-y-6">
+                {reviews.length > 0 ? (
+                  reviews.map((rev) => (
+                    <div key={rev._id} className="border-b border-slate-100 pb-6 last:border-0 last:pb-0">
+                      <div className="flex items-center gap-4 mb-3">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-lg shrink-0 overflow-hidden">
+                          {rev.reviewer?.profileImage ? (
+                            <img src={rev.reviewer.profileImage} alt={rev.reviewer.firstName} className="w-full h-full object-cover" />
+                          ) : (
+                            rev.reviewer?.firstName?.charAt(0) || 'U'
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-black text-[#0D1F43]">
+                            {rev.reviewer?.firstName} {rev.reviewer?.lastName}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  size={12}
+                                  className={star <= rev.rating ? 'text-primary fill-primary' : 'text-slate-200'}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              {new Date(rev.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-slate-600 text-sm leading-relaxed pl-16">
+                        {rev.comment}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-slate-500">No reviews yet. Be the first to leave one!</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
           </div>
 
           {/* Right Column (4 cols) */}
@@ -365,7 +556,16 @@ const BusinessProfile = () => {
                   )}
                 </div>
 
-                <button className="w-full bg-[#0D1F43] hover:bg-black text-white font-black text-xs py-6 rounded-2xl transition-all shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98]">
+                <button
+                  disabled={isSaving}
+                  className={`w-full ${isSaved ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-[#0D1F43] hover:bg-black'} text-white font-black text-xs py-6 rounded-2xl transition-all shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98] mb-4 disabled:opacity-70`}
+                  onClick={handleSaveBusiness}
+                >
+                  {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} className={isSaved ? "fill-white" : ""} />}
+                  {isSaving ? 'Saving...' : (isSaved ? 'Saved Business' : 'Save Business')}
+                </button>
+
+                <button className="w-full bg-primary hover:bg-primary/90 text-white font-black text-xs py-6 rounded-2xl transition-all shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98]">
                   <MessageSquare size={18} />
                   Request a Quote
                 </button>

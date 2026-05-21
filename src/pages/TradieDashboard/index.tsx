@@ -20,6 +20,7 @@ import Swal from 'sweetalert2';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import axiosClient from '../../api/axios';
 import LoadingScreen from '../../components/common/LoadingScreen';
+import { NotificationBell } from '../../components/common/NotificationBell';
 
 // Simulated initial data
 const initialData = {
@@ -238,6 +239,65 @@ const TradieDashboard = () => {
     }));
   };
 
+  const handleDeleteListing = async (id: string, name: string) => {
+    const result = await Swal.fire({
+      title: 'Request Deletion?',
+      text: `Are you sure you want to request deletion of "${name}"? This listing will be sent to the administrator for final removal approval.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f43f5e',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Yes, request deletion',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        popup: 'rounded-[2rem]',
+        confirmButton: 'rounded-xl font-bold uppercase tracking-widest text-[10px] px-6 py-3',
+        cancelButton: 'rounded-xl font-bold uppercase tracking-widest text-[10px] px-6 py-3'
+      }
+    });
+
+    if (result.isConfirmed) {
+      try {
+        setIsLoading(true);
+        const res = await axiosClient.delete(`/api/businesses/${id}`);
+        
+        Swal.fire({
+          title: 'Requested!',
+          text: res.data.message || 'Deletion request sent successfully.',
+          icon: 'success',
+          confirmButtonColor: '#097DDD',
+          customClass: {
+            popup: 'rounded-[2rem]'
+          }
+        });
+
+        // Fetch fresh listings
+        const businessesRes = await axiosClient.get('/api/businesses/my/listings');
+        const businesses = businessesRes.data;
+        setFormData(prev => ({
+          ...prev,
+          businessesList: businesses.map((b: any) => ({
+            id: b._id,
+            name: b.businessName,
+            category: b.category,
+            status: b.status.charAt(0).toUpperCase() + b.status.slice(1),
+            location: b.location,
+            image: b.gallery && b.gallery.length > 0 ? b.gallery[0].url : 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800'
+          }))
+        }));
+      } catch (err: any) {
+        Swal.fire({
+          title: 'Error',
+          text: err.response?.data?.message || 'Failed to submit deletion request.',
+          icon: 'error',
+          confirmButtonColor: '#097DDD'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
   const tabs = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
     { id: 'my-businesses', name: 'My Businesses', icon: Briefcase },
@@ -406,7 +466,11 @@ const TradieDashboard = () => {
                 <div key={biz.id} className="border border-slate-200 rounded-2xl flex flex-col justify-between hover:border-[#097DDD]/30 transition-colors overflow-hidden bg-white shadow-sm group">
                   <div className="h-40 w-full bg-slate-100 relative overflow-hidden">
                     <img src={biz.image} alt={biz.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                    <span className={`absolute top-4 right-4 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg backdrop-blur-md ${biz.status === 'Approved' ? 'bg-emerald-500/90 text-white' : 'bg-amber-500/90 text-white'}`}>
+                    <span className={`absolute top-4 right-4 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg backdrop-blur-md ${
+                      biz.status.toLowerCase().includes('approved') ? 'bg-emerald-500/90 text-white' : 
+                      biz.status.toLowerCase().includes('delete') ? 'bg-rose-500/90 text-white' : 
+                      'bg-amber-500/90 text-white'
+                    }`}>
                       {biz.status}
                     </span>
                   </div>
@@ -414,9 +478,16 @@ const TradieDashboard = () => {
                     <h4 className="font-bold text-slate-800 text-lg mb-2">{biz.name}</h4>
                     <p className="text-xs text-slate-500 mb-1 font-bold">{biz.category}</p>
                     <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin size={12} /> {biz.location}</p>
-                    <div className="mt-6 flex justify-end">
-                      <button onClick={() => setActiveTab('business')} className="w-full justify-center text-[#097DDD] hover:text-[#0869bb] text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors bg-[#097DDD]/5 px-4 py-3 rounded-xl hover:bg-[#097DDD]/10">
+                    <div className="mt-6 flex gap-3">
+                      <button onClick={() => setActiveTab('business')} className="flex-grow justify-center text-[#097DDD] hover:text-[#0869bb] text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors bg-[#097DDD]/5 px-4 py-3 rounded-xl hover:bg-[#097DDD]/10">
                         <Edit2 size={12} /> Edit Details
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteListing(biz.id, biz.name)}
+                        className="text-rose-500 hover:text-white hover:bg-rose-500 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"
+                        title="Delete business"
+                      >
+                        <Trash2 size={12} /> Delete
                       </button>
                     </div>
                   </div>
@@ -825,6 +896,7 @@ const TradieDashboard = () => {
         {/* Top Header */}
         <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
           <div className="flex items-center gap-6">
+            <NotificationBell theme="light" />
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{formData.contact.firstName} {formData.contact.lastName}</p>

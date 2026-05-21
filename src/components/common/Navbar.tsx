@@ -5,6 +5,7 @@ import { User, Menu, X, ChevronDown, Search, Target, Settings, LogOut, MapPin as
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import LoadingScreen from './LoadingScreen';
 import { logout } from '../../utils/authUtils';
+import { NotificationBell } from './NotificationBell';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -18,6 +19,8 @@ const Navbar = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [userName, setUserName] = useState("Erin Barr Qui saepe excepturi");
+
+
 
   // Dynamic User Data based on role
   const userData = isAdmin ? {
@@ -179,6 +182,9 @@ const Navbar = () => {
                   </Link>
                 ))}
 
+                {/* Notification Bell */}
+                <NotificationBell theme="dark" />
+
                 {/* User Dropdown */}
                 <div className="relative">
                   <button
@@ -274,8 +280,11 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="lg:hidden flex items-center">
+          {/* Mobile Menu & Bell Button */}
+          <div className="lg:hidden flex items-center space-x-2">
+            {isLoggedIn && (
+              <NotificationBell theme="dark" />
+            )}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-white/80"

@@ -19,6 +19,7 @@ import {
   Camera, Upload, X
 } from 'lucide-react';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
+import { NotificationBell } from '../../components/common/NotificationBell';
 
 // Section Imports
 import OverviewSection from './sections/OverviewSection';
@@ -80,7 +81,7 @@ const AdminDashboard = () => {
     try {
       const all = await getAdminAllBusinesses();
       setProfessionals(all.filter((b: any) => b.status === 'approved'));
-      setPendingSubmissions(all.filter((b: any) => b.status === 'pending'));
+      setPendingSubmissions(all.filter((b: any) => b.status === 'pending' || b.status === 'pending_delete'));
 
       // Build recent activity from latest business events
       const recent = [...all]
@@ -471,6 +472,30 @@ const AdminDashboard = () => {
     }
   };
 
+  const approveDeletion = async (id: string) => {
+    try {
+      await adminDeleteBusiness(id);
+      setPendingSubmissions(prev => prev.filter(p => (p._id || p.id) !== id));
+      await fetchBusinesses();
+      await fetchStats();
+      Swal.fire('Deleted!', 'Business has been deleted from the database.', 'success');
+    } catch (err: any) {
+      Swal.fire('Error', err?.response?.data?.message || 'Unable to delete.', 'error');
+    }
+  };
+
+  const rejectDeletion = async (id: string) => {
+    try {
+      await updateBusinessStatus(id, 'approved');
+      setPendingSubmissions(prev => prev.filter(p => (p._id || p.id) !== id));
+      await fetchBusinesses();
+      await fetchStats();
+      Swal.fire('Restored!', 'Listing is kept active and approved.', 'success');
+    } catch (err: any) {
+      Swal.fire('Error', err?.response?.data?.message || 'Unable to restore.', 'error');
+    }
+  };
+
   const removeBusiness = async (id: string) => {
     const result = await Swal.fire({
       title: 'Are you sure?',
@@ -615,6 +640,7 @@ const AdminDashboard = () => {
         {/* Top Header */}
         <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
           <div className="flex items-center gap-6">
+            <NotificationBell theme="light" />
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-[13px] font-black text-slate-900 uppercase tracking-tight">
@@ -675,6 +701,8 @@ const AdminDashboard = () => {
                   pendingSubmissions={pendingSubmissions}
                   onApprove={approveBusiness}
                   onReject={rejectBusiness}
+                  onApproveDeletion={approveDeletion}
+                  onRejectDeletion={rejectDeletion}
                   isLoading={businessLoading}
                 />
               )}

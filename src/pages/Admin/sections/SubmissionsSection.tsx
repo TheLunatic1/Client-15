@@ -5,10 +5,19 @@ interface SubmissionsSectionProps {
   pendingSubmissions: any[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onApproveDeletion: (id: string) => void;
+  onRejectDeletion: (id: string) => void;
   isLoading?: boolean;
 }
 
-const SubmissionsSection = ({ pendingSubmissions, onApprove, onReject, isLoading }: SubmissionsSectionProps) => {
+const SubmissionsSection = ({ 
+  pendingSubmissions, 
+  onApprove, 
+  onReject, 
+  onApproveDeletion,
+  onRejectDeletion,
+  isLoading 
+}: SubmissionsSectionProps) => {
   return (
     <motion.div key="submissions" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
       <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
@@ -46,8 +55,9 @@ const SubmissionsSection = ({ pendingSubmissions, onApprove, onReject, isLoading
                   const name = submission.businessName || submission.name || 'Unnamed';
                   const logo = submission.logo || submission.image || '';
                   const description = submission.shortDescription || submission.description || '—';
-                  const ownerName = submission.owner?.name || submission.owner || '—';
+                  const ownerName = submission.owner?.name || `${submission.owner?.firstName || ''} ${submission.owner?.lastName || ''}`.trim() || '—';
                   const ownerEmail = submission.owner?.email || '';
+                  const isPendingDelete = submission.status === 'pending_delete';
 
                   return (
                     <tr key={id} className="hover:bg-slate-50/50 transition-colors group">
@@ -61,7 +71,14 @@ const SubmissionsSection = ({ pendingSubmissions, onApprove, onReject, isLoading
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-900 mb-1">{name}</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-black text-slate-900">{name}</p>
+                              {isPendingDelete && (
+                                <span className="bg-rose-100 text-rose-600 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider">
+                                  Deletion Request
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-3">
                               <span className="text-[11px] font-black text-primary uppercase tracking-widest">{submission.category}</span>
                               <span className="w-1 h-1 bg-slate-200 rounded-full" />
@@ -86,18 +103,37 @@ const SubmissionsSection = ({ pendingSubmissions, onApprove, onReject, isLoading
                       </td>
                       <td className="px-12 py-8">
                         <div className="flex items-center justify-end gap-3">
-                          <button
-                            onClick={() => onApprove(id)}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
-                          >
-                            <Check size={14} strokeWidth={3} /> Approve
-                          </button>
-                          <button
-                            onClick={() => onReject(id)}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-500 rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all border border-rose-100"
-                          >
-                            <X size={14} strokeWidth={3} /> Reject
-                          </button>
+                          {isPendingDelete ? (
+                            <>
+                              <button
+                                onClick={() => onApproveDeletion(id)}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-rose-500 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/20"
+                              >
+                                <Check size={14} strokeWidth={3} /> Approve Delete
+                              </button>
+                              <button
+                                onClick={() => onRejectDeletion(id)}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200"
+                              >
+                                <X size={14} strokeWidth={3} /> Keep Listing
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => onApprove(id)}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
+                              >
+                                <Check size={14} strokeWidth={3} /> Approve
+                              </button>
+                              <button
+                                onClick={() => onReject(id)}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-500 rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all border border-rose-100"
+                              >
+                                <X size={14} strokeWidth={3} /> Reject
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
