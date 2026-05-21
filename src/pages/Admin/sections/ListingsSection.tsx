@@ -46,7 +46,15 @@ const ListingsSection = ({ professionals, onDelete, isLoading }: ListingsSection
                   const id = pro._id || pro.id;
                   const name = pro.businessName || pro.name || 'Unnamed';
                   const image = pro.coverImage || pro.logo || pro.image || '';
-                  const ownerName = pro.owner?.name || pro.owner || '—';
+                  const owner = pro.owner;
+                  const ownerName =
+                    (typeof owner === 'object' && owner
+                      ? owner.name ||
+                        `${owner.firstName || ''} ${owner.lastName || ''}`.trim() ||
+                        owner.email
+                      : typeof owner === 'string'
+                        ? owner
+                        : '') || '—';
                   return (
                     <tr key={id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-12 py-8">

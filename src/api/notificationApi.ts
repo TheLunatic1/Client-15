@@ -14,6 +14,7 @@ export interface NotificationItem {
   type: 'business_pending' | 'business_approved' | 'business_rejected' | 'business_deleted' | 'general';
   title: string;
   message: string;
+  rejectionReason?: string;
   link?: string;
   isRead: boolean;
   createdAt: string;

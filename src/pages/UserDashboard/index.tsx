@@ -3,68 +3,17 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, ShieldCheck, Briefcase, LogOut, CheckCircle, HardHat, X, AlertCircle } from 'lucide-react';
+import { User, ShieldCheck, Briefcase, LogOut, CheckCircle, HardHat, X } from 'lucide-react';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import UserProfileSection from '../Admin/sections/user/UserProfileSection';
 import UserSecuritySection from '../Admin/sections/user/UserSecuritySection';
 import axiosClient from '../../api/axios';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import { NotificationBell } from '../../components/common/NotificationBell';
-
-// ── Become a Tradie Modal ─────────────────────────────────────────────────────
-const BecomeTradieModal = ({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => void }) => (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      className="absolute inset-0 bg-[#050f26]/80 backdrop-blur-md"
-    />
-    <motion.div
-      initial={{ opacity: 0, scale: 0.92, y: 24 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.92, y: 24 }}
-      className="relative z-10 bg-white rounded-[3rem] p-10 max-w-md w-full shadow-2xl text-center"
-    >
-      <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-xl text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-all">
-        <X size={20} />
-      </button>
-
-      <div className="w-20 h-20 rounded-[2rem] bg-[#097DDD]/10 text-[#097DDD] flex items-center justify-center mx-auto mb-8 border border-[#097DDD]/20">
-        <HardHat size={36} strokeWidth={1.5} />
-      </div>
-
-      <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Become a Tradie</h3>
-      <p className="text-slate-500 text-sm leading-relaxed mb-4 font-medium">
-        Want to list your business and connect with local customers?
-      </p>
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 mb-8 text-left">
-        <div className="flex items-start gap-3">
-          <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700 font-bold leading-relaxed">
-            You'll need to create a <strong>separate Tradie account</strong> with a different email address. You'll be logged out and taken directly to the Tradie sign-up page.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <button
-          onClick={onConfirm}
-          className="w-full py-4 rounded-2xl font-black text-white bg-[#097DDD] hover:bg-[#0869bb] shadow-lg shadow-[#097DDD]/20 uppercase tracking-widest text-[10px] transition-all"
-        >
-          Log Out & Sign Up as Tradie
-        </button>
-        <button
-          onClick={onClose}
-          className="w-full py-4 rounded-2xl font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest text-[10px]"
-        >
-          Maybe Later
-        </button>
-      </div>
-    </motion.div>
-  </div>
-);
+import { BecomeTradieModal } from '../../components/common/index.ts';
+import DashboardProfileChip from '../../components/common/DashboardProfileChip';
+import { getProfile } from '../../api/userApi';
+import { resolveAvatarUrl, syncProfileCache } from '../../utils/profileUtils';
 
 // ── Logout Modal ──────────────────────────────────────────────────────────────
 const LogoutModal = ({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => void }) => (
@@ -94,10 +43,13 @@ const UserDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState({
     name: 'Member',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     avatar: '',
-    location: ''
+    location: '',
+    roleLabel: 'Member Account',
   });
   const [savedStats, setSavedStats] = useState({
     totalSaved: 0,
@@ -112,15 +64,20 @@ const UserDashboard = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axiosClient.get('/api/users/profile');
-      const user = response.data;
-      const displayName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member';
+      const user = await getProfile();
+      const displayName =
+        `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member';
+      const avatar = resolveAvatarUrl(displayName, user.profileImage);
+      syncProfileCache({ name: displayName, profileImage: user.profileImage || '' });
       setUserData({
         name: displayName,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email || '',
         phone: user.phone || '',
-        avatar: user.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=097DDD&color=fff`,
-        location: `${user.city ? user.city + ', ' : ''}${user.state || ''}`.trim().replace(/, $/, '')
+        avatar,
+        location: `${user.city ? user.city + ', ' : ''}${user.state || ''}`.trim().replace(/, $/, ''),
+        roleLabel: 'Member Account',
       });
     } catch (error) {
       console.error('Failed to fetch profile', error);
@@ -152,16 +109,6 @@ const UserDashboard = () => {
     localStorage.removeItem('userName');
     localStorage.removeItem('userEmail');
     navigate('/login');
-  };
-
-  const handleBecomeTradieConfirm = () => {
-    // Log out first, then redirect to tradie signup
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('token');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
-    navigate('/join-now?type=tradie');
   };
 
   const tabs = [
@@ -279,13 +226,13 @@ const UserDashboard = () => {
         <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
           <div className="flex items-center gap-6">
             <NotificationBell theme="light" />
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{userData.name}</p>
-                <p className="text-[9px] text-[#097DDD] font-black uppercase tracking-widest">Member Profile</p>
-              </div>
-              <img src={userData.avatar} className="w-10 h-10 rounded-xl object-cover border-2 border-slate-100" alt="Avatar" />
-            </div>
+            <DashboardProfileChip
+              name={userData.name}
+              avatar={userData.avatar}
+              subtitle="Member Profile"
+              onGoToProfile={() => setActiveTab('profile')}
+              onGoToSecurity={() => setActiveTab('security')}
+            />
           </div>
         </header>
 
@@ -357,7 +304,7 @@ const UserDashboard = () => {
       {/* Modals */}
       <AnimatePresence>
         {isLogoutModalOpen && <LogoutModal onClose={() => setIsLogoutModalOpen(false)} onConfirm={handleLogout} />}
-        {isBecomeTradieOpen && <BecomeTradieModal onClose={() => setIsBecomeTradieOpen(false)} onConfirm={handleBecomeTradieConfirm} />}
+        {isBecomeTradieOpen && <BecomeTradieModal onClose={() => setIsBecomeTradieOpen(false)} />}
       </AnimatePresence>
 
       <style>{`

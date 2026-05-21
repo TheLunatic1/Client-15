@@ -64,5 +64,6 @@ export const logout = (): void => {
   localStorage.removeItem('userRole');
   localStorage.removeItem('userName');
   localStorage.removeItem('userEmail');
+  localStorage.removeItem('userProfileImage');
   localStorage.removeItem('isAdminAuthorized');
 };

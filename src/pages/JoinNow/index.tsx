@@ -10,6 +10,11 @@ import Swal from 'sweetalert2';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import tradieBg from '../../assets/tradie-login-bg.png';
 import axiosClient from '../../api/axios';
+import {
+  validateCustomerRegistration,
+  validateTradieRegistration,
+  showValidationAlert,
+} from '../../utils/validation';
 
 const JoinNow = () => {
   const navigate = useNavigate();
@@ -40,24 +45,20 @@ const JoinNow = () => {
 
   const handleCustomerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !lastName || !email || !password) {
-      Swal.fire({
-        title: 'Error',
-        text: 'All fields are required',
-        icon: 'error',
-        confirmButtonColor: '#097DDD'
-      });
+    const check = validateCustomerRegistration({ firstName, lastName, email, password });
+    if (!check.ok) {
+      showValidationAlert(check.message);
       return;
     }
 
     setIsSubmitting(true);
     try {
       await axiosClient.post('/api/users/register', {
-        firstName,
-        lastName,
-        email,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
         password,
-        role: 'user'
+        role: 'user',
       });
 
       Swal.fire({
@@ -84,54 +85,16 @@ const JoinNow = () => {
 
   const handleTradieSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tradieName || !tradieEmail || !tradiePassword || !tradieConfirmPassword) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Please fill in name, email, password and confirm password',
-        icon: 'error',
-        confirmButtonColor: '#097DDD'
-      });
-      return;
-    }
-    if (tradiePassword !== tradieConfirmPassword) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Passwords do not match',
-        icon: 'error',
-        confirmButtonColor: '#097DDD'
-      });
-      return;
-    }
-    if (!agreeToTerms) {
-      Swal.fire({
-        title: 'Error',
-        text: 'You must agree to the Terms & Conditions and Privacy Policy',
-        icon: 'error',
-        confirmButtonColor: '#097DDD'
-      });
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(tradieEmail)) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Please enter a valid email address',
-        icon: 'error',
-        confirmButtonColor: '#097DDD'
-      });
-      return;
-    }
-
-    // Validate password length
-    if (tradiePassword.length < 6) {
-      Swal.fire({
-        title: 'Error',
-        text: 'Password must be at least 6 characters long',
-        icon: 'error',
-        confirmButtonColor: '#097DDD'
-      });
+    const check = validateTradieRegistration({
+      fullName: tradieName,
+      email: tradieEmail,
+      password: tradiePassword,
+      confirmPassword: tradieConfirmPassword,
+      businessName: tradieBusinessName,
+      agreeToTerms,
+    });
+    if (!check.ok) {
+      showValidationAlert(check.message);
       return;
     }
 
@@ -144,9 +107,9 @@ const JoinNow = () => {
       const response = await axiosClient.post('/api/users/register', {
         firstName: fName,
         lastName: lName,
-        email: tradieEmail,
+        email: tradieEmail.trim().toLowerCase(),
         password: tradiePassword,
-        role: 'tradie'
+        role: 'tradie',
       });
       const data = response.data;
 

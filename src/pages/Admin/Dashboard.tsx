@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createCategory, deleteCategory, updateCategory, getCategories } from '../../api/categoryApi';
@@ -20,6 +20,16 @@ import {
 } from 'lucide-react';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import { NotificationBell } from '../../components/common/NotificationBell';
+import DashboardProfileChip from '../../components/common/DashboardProfileChip';
+import { getProfile } from '../../api/userApi';
+import { resolveAvatarUrl, syncProfileCache } from '../../utils/profileUtils';
+import {
+  validateLogin,
+  validateBlogForm,
+  validateCategoryForm,
+  validateLocationForm,
+  showValidationAlert,
+} from '../../utils/validation';
 
 // Section Imports
 import OverviewSection from './sections/OverviewSection';
@@ -37,6 +47,7 @@ const CHART_COLORS = ['#097DDD', '#6ab4f5', '#0D1F43', '#e2e8f0', '#94a3b8', '#6
 
 
 const AdminDashboard = () => {
+  const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [settingsTab, setSettingsTab] = useState('profile');
@@ -243,8 +254,16 @@ const AdminDashboard = () => {
 
   const handleSaveBlog = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!blogForm.image) {
-      Swal.fire('Missing Image', 'Please upload a cover image before publishing.', 'warning');
+    const check = validateBlogForm({
+      title: blogForm.title,
+      category: blogForm.category,
+      excerpt: blogForm.excerpt,
+      content: blogForm.content,
+      image: blogForm.image,
+      writer: blogForm.publisher,
+    });
+    if (!check.ok) {
+      showValidationAlert(check.message);
       return;
     }
     try {
@@ -324,6 +343,11 @@ const AdminDashboard = () => {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    const check = validateCategoryForm(categoryForm);
+    if (!check.ok) {
+      showValidationAlert(check.message);
+      return;
+    }
     try {
       if (editingCategory) {
         await updateCategory(String(editingCategory.id), categoryForm);
@@ -376,6 +400,11 @@ const AdminDashboard = () => {
 
   const handleSaveLocation = async (e: React.FormEvent) => {
     e.preventDefault();
+    const check = validateLocationForm(locationForm);
+    if (!check.ok) {
+      showValidationAlert(check.message);
+      return;
+    }
     try {
       if (editingLocation) {
         await updateLocation(String(editingLocation.id), locationForm);
@@ -415,16 +444,55 @@ const AdminDashboard = () => {
     }
   };
 
-  const adminData = {
-    name: "System Admin",
-    email: "admin@mylocalpro.com.au",
-    phone: "+61 400 000 000",
-    avatar: "https://ui-avatars.com/api/?name=Admin&background=0D1F43&color=fff",
-    location: "Hobart, TAS"
+  const [adminProfile, setAdminProfile] = useState({
+    name: 'Admin',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    avatar: resolveAvatarUrl('Admin', ''),
+    location: 'Australia',
+    roleLabel: 'Administrator',
+  });
+
+  const fetchAdminProfile = async () => {
+    try {
+      const user = await getProfile();
+      const displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Admin';
+      const avatar = resolveAvatarUrl(displayName, user.profileImage);
+      syncProfileCache({ name: displayName, profileImage: user.profileImage || '' });
+      setAdminProfile({
+        name: displayName,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email || '',
+        phone: user.phone || '',
+        avatar,
+        location: `${user.city ? `${user.city}, ` : ''}${user.state || ''}`.trim().replace(/, $/, '') || 'Australia',
+        roleLabel: 'Administrator',
+      });
+    } catch {
+      /* keep defaults */
+    }
   };
+
+  useEffect(() => {
+    const state = location.state as { activeTab?: string; settingsTab?: string } | null;
+    if (state?.activeTab) setActiveTab(state.activeTab);
+    if (state?.settingsTab) setSettingsTab(state.settingsTab);
+  }, [location.state]);
+
+  useEffect(() => {
+    if (isLoggedIn) fetchAdminProfile();
+  }, [isLoggedIn]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const check = validateLogin(email, password);
+    if (!check.ok) {
+      showValidationAlert(check.message);
+      return;
+    }
     try {
       const res = await axiosClient.post('/api/users/login', { email, password });
       const user = res.data;
@@ -442,7 +510,13 @@ const AdminDashboard = () => {
       localStorage.setItem('userRole', 'admin');
       localStorage.setItem('userName', user.name);
       localStorage.setItem('userEmail', user.email);
+      if (user.profileImage) {
+        localStorage.setItem('userProfileImage', user.profileImage);
+      } else {
+        localStorage.removeItem('userProfileImage');
+      }
       setIsLoggedIn(true);
+      fetchAdminProfile();
     } catch (err: any) {
       Swal.fire({
         title: 'Authentication Error',
@@ -465,12 +539,12 @@ const AdminDashboard = () => {
     }
   };
 
-  const rejectBusiness = async (id: string) => {
+  const rejectBusiness = async (id: string, rejectionReason: string) => {
     try {
-      await updateBusinessStatus(id, 'rejected');
+      await updateBusinessStatus(id, 'rejected', rejectionReason);
       setPendingSubmissions(prev => prev.filter(p => (p._id || p.id) !== id));
       await fetchStats();
-      Swal.fire('Rejected', 'Business submission has been rejected.', 'info');
+      Swal.fire('Rejected', 'The tradie has been notified with your rejection message.', 'info');
     } catch (err: any) {
       Swal.fire('Error', err?.response?.data?.message || 'Unable to reject.', 'error');
     }
@@ -645,17 +719,19 @@ const AdminDashboard = () => {
         <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
           <div className="flex items-center gap-6">
             <NotificationBell theme="light" />
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-[13px] font-black text-slate-900 uppercase tracking-tight">
-                  {localStorage.getItem('userName') || 'Admin'}
-                </p>
-                <p className="text-[11px] text-primary font-black uppercase tracking-widest">Online</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-[#0D1F43] flex items-center justify-center text-white font-black text-xs">
-                {(localStorage.getItem('userName') || 'AD').slice(0, 2).toUpperCase()}
-              </div>
-            </div>
+            <DashboardProfileChip
+              name={adminProfile.name}
+              avatar={adminProfile.avatar}
+              subtitle="Administrator"
+              onGoToProfile={() => {
+                setActiveTab('settings');
+                setSettingsTab('profile');
+              }}
+              onGoToSecurity={() => {
+                setActiveTab('settings');
+                setSettingsTab('security');
+              }}
+            />
           </div>
         </header>
 
@@ -739,7 +815,9 @@ const AdminDashboard = () => {
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.2 }}
                     >
-                      {settingsTab === 'profile' && <UserProfileSection userData={adminData} />}
+                      {settingsTab === 'profile' && (
+                        <UserProfileSection userData={adminProfile} onUpdate={fetchAdminProfile} />
+                      )}
                       {settingsTab === 'security' && <UserSecuritySection />}
                     </motion.div>
                   </AnimatePresence>

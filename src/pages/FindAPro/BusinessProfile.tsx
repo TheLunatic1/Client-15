@@ -13,6 +13,7 @@ import {
 import { getBusinessById } from "../../api/businessApi";
 import { reviewApi, type Review } from "../../api/reviewApi";
 import { checkSavedStatus, saveBusiness, unsaveBusiness } from "../../api/userApi";
+import { validateReview, showValidationAlert } from "../../utils/validation";
 
 // Brand icons
 const Facebook = (props: any) => (
@@ -88,8 +89,9 @@ const BusinessProfile = () => {
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRating) {
-      alert("Please select a rating.");
+    const check = validateReview(newRating, newComment);
+    if (!check.ok) {
+      showValidationAlert(check.message);
       return;
     }
     if (!pro || !pro._id) return;

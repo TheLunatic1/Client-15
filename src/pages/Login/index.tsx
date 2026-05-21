@@ -8,6 +8,7 @@ import LoadingScreen from '../../components/common/LoadingScreen';
 // Using the generated image
 import tradieBg from '../../assets/tradie-login-bg.png';
 import axiosClient from '../../api/axios';
+import { validateLogin, showValidationAlert } from '../../utils/validation';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,7 +18,13 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    const check = validateLogin(email, password);
+    if (!check.ok) {
+      showValidationAlert(check.message);
+      return;
+    }
+
     setIsLoading(true);
 
     const superUserEmail = import.meta.env.VITE_SUPERUSER_EMAIL;
@@ -38,6 +45,11 @@ const Login = () => {
       localStorage.setItem('userRole', targetRole);
       localStorage.setItem('userName', data.name);
       localStorage.setItem('userEmail', data.email);
+      if (data.profileImage) {
+        localStorage.setItem('userProfileImage', data.profileImage);
+      } else {
+        localStorage.removeItem('userProfileImage');
+      }
 
       setTimeout(() => {
         if (targetRole === 'admin') {

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import Swal from 'sweetalert2';
 import axiosClient from '../../../../api/axios';
+import { validatePasswordChange, showValidationAlert } from '../../../../utils/validation';
 
 const UserSecuritySection = () => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -11,15 +12,16 @@ const UserSecuritySection = () => {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleUpdatePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      Swal.fire('Error', 'New passwords do not match.', 'error');
+    const check = validatePasswordChange({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+    if (!check.ok) {
+      showValidationAlert(check.message);
       return;
     }
-    if (newPassword.length < 8) {
-      Swal.fire('Error', 'Password must be at least 8 characters long.', 'error');
-      return;
-    }
-    
+
     setIsUpdating(true);
     try {
       await axiosClient.put('/api/users/profile/password', {

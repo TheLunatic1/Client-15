@@ -5,6 +5,7 @@ import HowItWorks from '../../components/home/HowItWorks.tsx';
 import FindTradies from '../../components/home/FindTradies.tsx';
 import ReviewedTradies from '../../components/home/ReviewedTradies.tsx';
 import SkilledTradieCTA from '../../components/home/SkilledTradieCTA.tsx';
+import GiveawaySection from '../../components/home/GiveawaySection.tsx';
 import BlogSection from '../../components/home/BlogSection.tsx';
 //import MyLocalProCTA from '../../components/home/MyLocalProCTA.tsx';
 
@@ -15,6 +16,7 @@ const Home = () => {
       <SkilledTradieCTA />
       {/* <RequestedServices /> */}
       <HowItWorks />
+      <GiveawaySection />
       {/* <TradeSlider /> */}
       <FindTradies />
       <ReviewedTradies />

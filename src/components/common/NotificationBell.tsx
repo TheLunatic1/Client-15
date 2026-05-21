@@ -211,11 +211,26 @@ export const NotificationBell = ({ theme = 'dark' }: NotificationBellProps) => {
                             <Trash2 size={12} />
                           </button>
                         </div>
-                        <p className={`text-[11px] leading-relaxed font-semibold ${
-                          isDark ? 'text-white/60' : 'text-slate-550'
-                        }`}>
-                          {notif.message}
-                        </p>
+                        {notif.type === 'business_rejected' && notif.rejectionReason ? (
+                          <div className="space-y-1.5">
+                            <p className={`text-[10px] font-black uppercase tracking-wide leading-snug ${
+                              isDark ? 'text-rose-300/90' : 'text-rose-600'
+                            }`}>
+                              This is the reason why your business got rejected.
+                            </p>
+                            <p className={`text-[11px] leading-relaxed font-semibold ${
+                              isDark ? 'text-white/70' : 'text-slate-600'
+                            }`}>
+                              {notif.rejectionReason}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className={`text-[11px] leading-relaxed font-semibold ${
+                            isDark ? 'text-white/60' : 'text-slate-550'
+                          }`}>
+                            {notif.message}
+                          </p>
+                        )}
                         <p className={`text-[9px] font-black uppercase tracking-wider ${
                           isDark ? 'text-white/30' : 'text-slate-400'
                         }`}>

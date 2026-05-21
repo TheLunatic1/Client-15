@@ -1,10 +1,22 @@
-import { useState, useEffect } from "react";
-import { CheckCircle2, ArrowRight, Upload, Star, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { CheckCircle2, ArrowRight, Upload, Star, Loader2, X } from "lucide-react";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
-import { createBusiness } from "../../api/businessApi";
+import { createBusiness, addGalleryImage } from "../../api/businessApi";
 import { getCategories } from "../../api/categoryApi";
 import { getLocations } from "../../api/locationApi";
+import { uploadImage } from "../../api/uploadApi";
+import { validateListBusinessForm, showValidationAlert } from "../../utils/validation";
+
+const MAX_IMAGES = 6;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
+
+type UploadedImage = {
+  id: string;
+  preview: string;
+  url: string;
+  uploading?: boolean;
+};
 
 const benefits = [
   { title: "Free to List", desc: "No setup fees through 2026" },
@@ -31,8 +43,12 @@ const FALLBACK_LOCATIONS = [
 ];
 
 export const ListBusinessFormSection = () => {
+  const formRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [sent, setSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [images, setImages] = useState<UploadedImage[]>([]);
   const [categories, setCategories] = useState<string[]>(FALLBACK_CATEGORIES);
   const [locations, setLocations] = useState<string[]>(FALLBACK_LOCATIONS);
 
@@ -66,11 +82,119 @@ export const ListBusinessFormSection = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (sent) {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [sent]);
+
+  const scrollToFormTop = () => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+
+    const token = localStorage.getItem("token");
+    if (!token || token === "dummy-tradie-token") {
+      Swal.fire({
+        title: "Not Logged In",
+        text: "Please log in as a tradie before uploading images.",
+        icon: "warning",
+        confirmButtonColor: "#097DDD",
+      });
+      return;
+    }
+
+    const slotsLeft = MAX_IMAGES - images.filter((i) => i.url || i.uploading).length;
+    if (slotsLeft <= 0) {
+      Swal.fire({
+        title: "Limit Reached",
+        text: `You can upload up to ${MAX_IMAGES} images.`,
+        icon: "info",
+        confirmButtonColor: "#097DDD",
+      });
+      return;
+    }
+
+    const filesToUpload = files.slice(0, slotsLeft);
+    setIsUploadingImages(true);
+
+    for (const file of filesToUpload) {
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        Swal.fire({
+          title: "Invalid File",
+          text: "Only JPG and PNG images are allowed.",
+          icon: "warning",
+          confirmButtonColor: "#097DDD",
+        });
+        continue;
+      }
+
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const preview = URL.createObjectURL(file);
+      setImages((prev) => [...prev, { id, preview, url: "", uploading: true }]);
+
+      try {
+        const url = await uploadImage(file);
+        setImages((prev) =>
+          prev.map((img) => (img.id === id ? { ...img, url, uploading: false } : img))
+        );
+      } catch {
+        setImages((prev) => prev.filter((img) => img.id !== id));
+        URL.revokeObjectURL(preview);
+        Swal.fire({
+          title: "Upload Failed",
+          text: "Could not upload image. Please try again.",
+          icon: "error",
+          confirmButtonColor: "#097DDD",
+        });
+      }
+    }
+
+    setIsUploadingImages(false);
+  };
+
+  const removeImage = (id: string) => {
+    setImages((prev) => {
+      const removed = prev.find((img) => img.id === id);
+      if (removed?.preview.startsWith("blob:")) URL.revokeObjectURL(removed.preview);
+      return prev.filter((img) => img.id !== id);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!businessName || !category || !location || !shortDescription || !servicesOffered || !abn || !contactPhone || !contactEmail) {
-      Swal.fire({ title: 'Missing Fields', text: 'Please fill in all required fields.', icon: 'warning', confirmButtonColor: '#097DDD' });
+    const validation = validateListBusinessForm({
+      businessName,
+      category,
+      location,
+      shortDescription,
+      servicesOffered,
+      abn,
+      contactPhone,
+      contactEmail,
+      website,
+      yearsInBusiness,
+      contactName,
+    });
+    if (!validation.ok) {
+      showValidationAlert(validation.message);
+      scrollToFormTop();
+      return;
+    }
+
+    if (images.some((img) => img.uploading)) {
+      Swal.fire({
+        title: 'Upload in Progress',
+        text: 'Please wait for images to finish uploading.',
+        icon: 'info',
+        confirmButtonColor: '#097DDD',
+      });
       return;
     }
 
@@ -87,19 +211,31 @@ export const ListBusinessFormSection = () => {
 
     setIsSubmitting(true);
     try {
-      await createBusiness({
-        businessName,
+      const uploadedUrls = images.filter((img) => img.url).map((img) => img.url);
+      const primaryImage = uploadedUrls[0];
+
+      const business = await createBusiness({
+        businessName: businessName.trim(),
         category,
         location,
-        suburb,
-        shortDescription,
-        servicesOffered,
-        abn,
-        website,
+        suburb: suburb.trim(),
+        shortDescription: shortDescription.trim(),
+        servicesOffered: servicesOffered.trim(),
+        abn: abn.replace(/\s/g, ''),
+        website: website.trim(),
         yearsInBusiness,
-        contactPhone,
-        contactEmail,
+        contactPhone: contactPhone.trim(),
+        contactEmail: contactEmail.trim(),
+        logo: primaryImage,
+        coverImage: primaryImage,
       });
+
+      const businessId = business._id || business.id;
+      if (businessId && uploadedUrls.length > 0) {
+        await Promise.all(
+          uploadedUrls.map((url) => addGalleryImage(businessId, { url }))
+        );
+      }
 
       // Clear registration prefill cache
       localStorage.removeItem('prefillBusinessName');
@@ -110,13 +246,14 @@ export const ListBusinessFormSection = () => {
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Failed to submit listing. Please try again.';
       Swal.fire({ title: 'Submission Failed', text: msg, icon: 'error', confirmButtonColor: '#097DDD' });
+      scrollToFormTop();
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <section className="bg-[#f4f7fb] pt-14 pb-18">
+    <section ref={formRef} id="list-business-form" className="bg-[#f4f7fb] pt-14 pb-18 scroll-mt-24">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-[400px_minmax(0,800px)] gap-12 items-start justify-center">
         
         {/* ── Left: Benefits ── */}
@@ -312,16 +449,67 @@ export const ListBusinessFormSection = () => {
                   </div>
                 </div>
 
-                {/* Photos Upload (UI only for now) */}
+                {/* Photos Upload */}
                 <div>
                   <label className={labelCls}>Photos of your work</label>
-                  <div className="mt-2 border-2 border-dashed border-[#cdd6e3] rounded-[14px] p-10 flex flex-col items-center justify-center bg-[#E4EAF1]/20 hover:bg-[#E4EAF1]/30 transition-colors cursor-pointer group">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingImages || images.length >= MAX_IMAGES}
+                    className="mt-2 w-full border-2 border-dashed border-[#cdd6e3] rounded-[14px] p-10 flex flex-col items-center justify-center bg-[#E4EAF1]/20 hover:bg-[#E4EAF1]/30 transition-colors cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <div className="w-12 h-12 rounded-full bg-[#097DDD]/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <Upload size={24} className="text-[#097DDD]" />
+                      {isUploadingImages ? (
+                        <Loader2 size={24} className="text-[#097DDD] animate-spin" />
+                      ) : (
+                        <Upload size={24} className="text-[#097DDD]" />
+                      )}
                     </div>
-                    <div className="text-[11px] font-black uppercase tracking-wider text-[#097DDD] mb-1">Click to upload</div>
-                    <div className="text-[10px] font-bold text-[#7a90a8]">Up to 6 images, JPG or PNG.</div>
-                  </div>
+                    <div className="text-[11px] font-black uppercase tracking-wider text-[#097DDD] mb-1">
+                      Click to upload
+                    </div>
+                    <div className="text-[10px] font-bold text-[#7a90a8]">
+                      Up to {MAX_IMAGES} images, JPG or PNG ({images.length}/{MAX_IMAGES})
+                    </div>
+                  </button>
+
+                  {images.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {images.map((img) => (
+                        <div
+                          key={img.id}
+                          className="relative aspect-square rounded-xl overflow-hidden border border-[#dde4ef] bg-slate-100"
+                        >
+                          <img
+                            src={img.url || img.preview}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                          {img.uploading && (
+                            <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                              <Loader2 size={22} className="text-[#097DDD] animate-spin" />
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(img.id)}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-rose-500 hover:bg-rose-50 shadow-sm"
+                            aria-label="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <hr className="border-[#dde4ef] my-10" />
@@ -378,7 +566,7 @@ export const ListBusinessFormSection = () => {
                   </p>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isUploadingImages}
                     className="w-full sm:w-auto flex items-center justify-center gap-3 bg-[#097DDD] text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-xl py-5 px-12 shadow-[0_4px_25px_rgba(9,125,221,0.4)] hover:bg-[#0a8ef0] hover:shadow-[0_8px_35px_rgba(9,125,221,0.55)] transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (

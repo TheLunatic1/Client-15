@@ -50,9 +50,14 @@ export const getAdminAllBusinesses = async (status?: 'pending' | 'approved' | 'r
 
 export const updateBusinessStatus = async (
   id: string,
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'pending_delete',
+  rejectionReason?: string
 ) => {
-  const res = await axiosClient.patch(`/api/businesses/${id}/status`, { status });
+  const body: { status: string; rejectionReason?: string } = { status };
+  if (rejectionReason?.trim()) {
+    body.rejectionReason = rejectionReason.trim();
+  }
+  const res = await axiosClient.patch(`/api/businesses/${id}/status`, body);
   return res.data;
 };
 

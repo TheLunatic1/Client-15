@@ -21,6 +21,18 @@ import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-remo
 import axiosClient from '../../api/axios';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import { NotificationBell } from '../../components/common/NotificationBell';
+import DashboardProfileChip from '../../components/common/DashboardProfileChip';
+import UserProfileSection from '../Admin/sections/user/UserProfileSection';
+import { getProfile } from '../../api/userApi';
+import { resolveAvatarUrl, syncProfileCache } from '../../utils/profileUtils';
+import {
+  validatePasswordChange,
+  validateNamePart,
+  validateEmail,
+  validatePhoneAU,
+  showValidationAlert,
+  runValidations,
+} from '../../utils/validation';
 
 // Simulated initial data
 const initialData = {
@@ -104,6 +116,16 @@ const TradieDashboard = () => {
   const [formData, setFormData] = useState(initialData);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileData, setProfileData] = useState({
+    name: 'Tradie',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    avatar: resolveAvatarUrl('Tradie', ''),
+    location: 'Australia',
+    roleLabel: 'Tradie Account',
+  });
 
   // Security Center States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -127,7 +149,20 @@ const TradieDashboard = () => {
         
         const profile = profileRes.data;
         const businesses = businessesRes.data;
-        
+        const displayName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Tradie';
+        const avatar = resolveAvatarUrl(displayName, profile.profileImage);
+        syncProfileCache({ name: displayName, profileImage: profile.profileImage || '' });
+        setProfileData({
+          name: displayName,
+          firstName: profile.firstName || '',
+          lastName: profile.lastName || '',
+          email: profile.email || '',
+          phone: profile.phone || '',
+          avatar,
+          location: `${profile.city ? `${profile.city}, ` : ''}${profile.state || ''}`.trim().replace(/, $/, '') || 'Australia',
+          roleLabel: 'Tradie Account',
+        });
+
         const mainBusiness = businesses.length > 0 ? businesses[0] : {};
 
         setFormData({
@@ -178,21 +213,44 @@ const TradieDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userProfileImage');
     navigate('/login');
   };
 
   const handleSave = async (section: string) => {
     try {
       if (section === 'Password') {
-        if (newPassword !== confirmPassword) {
-          Swal.fire({ title: 'Error', text: 'Passwords do not match', icon: 'error', confirmButtonColor: '#097DDD' });
+        const pwCheck = validatePasswordChange({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        });
+        if (!pwCheck.ok) {
+          showValidationAlert(pwCheck.message);
           return;
         }
         await axiosClient.put('/api/users/profile/password', { currentPassword, newPassword });
         setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       } else if (section === 'Business Profile') {
-        // Update User Profile
-        await axiosClient.put('/api/users/profile', formData.contact);
+        const profileCheck = runValidations(
+          validateNamePart(formData.contact.firstName, 'First name'),
+          validateNamePart(formData.contact.lastName, 'Last name'),
+          validateEmail(formData.contact.email),
+          validatePhoneAU(formData.contact.phone, false)
+        );
+        if (!profileCheck.ok) {
+          showValidationAlert(profileCheck.message);
+          return;
+        }
+        await axiosClient.put('/api/users/profile', {
+          firstName: formData.contact.firstName.trim(),
+          lastName: formData.contact.lastName.trim(),
+          phone: formData.contact.phone.trim(),
+          address: formData.contact.address?.trim(),
+          city: formData.contact.city?.trim(),
+          state: formData.contact.state?.trim(),
+          postcode: formData.contact.postcode?.trim(),
+        });
         
         // Update Business if ID exists
         const bId = (formData.business as any).id;
@@ -300,10 +358,32 @@ const TradieDashboard = () => {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
+    { id: 'profile', name: 'Account Profile', icon: User },
     { id: 'my-businesses', name: 'My Businesses', icon: Briefcase },
     { id: 'business', name: 'Business Details', icon: FileText },
-    { id: 'security', name: 'Security Center', icon: ShieldCheck }
+    { id: 'security', name: 'Security Center', icon: ShieldCheck },
   ];
+
+  const refreshProfile = async () => {
+    try {
+      const profile = await getProfile();
+      const displayName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Tradie';
+      const avatar = resolveAvatarUrl(displayName, profile.profileImage);
+      syncProfileCache({ name: displayName, profileImage: profile.profileImage || '' });
+      setProfileData({
+        name: displayName,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        email: profile.email || '',
+        phone: profile.phone || '',
+        avatar,
+        location: `${profile.city ? `${profile.city}, ` : ''}${profile.state || ''}`.trim().replace(/, $/, '') || 'Australia',
+        roleLabel: 'Tradie Account',
+      });
+    } catch {
+      /* ignore */
+    }
+  };
 
   const totalAdded = formData.businessesList.length;
   const approved = formData.businessesList.filter(b => b.status === 'Approved').length;
@@ -313,6 +393,11 @@ const TradieDashboard = () => {
   const renderContent = () => {
     if (isLoading) return <LoadingScreen />;
     switch (activeTab) {
+      case 'profile':
+        return (
+          <UserProfileSection userData={profileData} onUpdate={refreshProfile} />
+        );
+
       case 'overview':
         return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
@@ -897,15 +982,13 @@ const TradieDashboard = () => {
         <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
           <div className="flex items-center gap-6">
             <NotificationBell theme="light" />
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{formData.contact.firstName} {formData.contact.lastName}</p>
-                <p className="text-[9px] text-[#097DDD] font-black uppercase tracking-widest">Tradie Profile</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-[#097DDD] flex items-center justify-center text-white font-black text-lg border-2 border-slate-100 shadow-sm">
-                {formData.contact.firstName[0]}
-              </div>
-            </div>
+            <DashboardProfileChip
+              name={profileData.name}
+              avatar={profileData.avatar}
+              subtitle="Tradie Profile"
+              onGoToProfile={() => setActiveTab('profile')}
+              onGoToSecurity={() => setActiveTab('security')}
+            />
           </div>
         </header>
 

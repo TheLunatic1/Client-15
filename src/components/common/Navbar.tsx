@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Menu, X, ChevronDown, Search, Target, Settings, LogOut, MapPin as MapPinIcon, LayoutDashboard, FileText } from 'lucide-react';
+import { User, Menu, X, ChevronDown, Search, Target, LogOut, MapPin as MapPinIcon, LayoutDashboard, FileText, ShieldCheck } from 'lucide-react';
+import { getProfile } from '../../api/userApi';
+import { getCachedProfile, resolveAvatarUrl, syncProfileCache } from '../../utils/profileUtils';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import LoadingScreen from './LoadingScreen';
 import { logout } from '../../utils/authUtils';
@@ -18,33 +20,46 @@ const Navbar = () => {
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const [userName, setUserName] = useState("Erin Barr Qui saepe excepturi");
+  const cached = getCachedProfile();
+  const [userName, setUserName] = useState(cached.name);
+  const [userAvatar, setUserAvatar] = useState(cached.avatar);
 
-
-
-  // Dynamic User Data based on role
-  const userData = isAdmin ? {
-    name: "System Admin",
-    avatar: "https://ui-avatars.com/api/?name=Admin&background=097DDD&color=fff"
-  } : {
-    name: userName,
-    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=097DDD&color=fff`
+  const userData = {
+    name: isAdmin && !localStorage.getItem('userProfileImage') ? userName || 'Admin' : userName,
+    avatar: userAvatar,
   };
 
   useEffect(() => {
     const auth = localStorage.getItem('isLoggedIn');
     const userRole = localStorage.getItem('userRole');
-    if (auth === 'true') {
-      setIsLoggedIn(true);
-    }
+    setIsLoggedIn(auth === 'true');
     setIsAdmin(userRole === 'admin');
 
-    const storedName = localStorage.getItem('userName');
-    if (storedName) {
-      setUserName(storedName);
-    } else {
-      setUserName("Erin Barr Qui saepe excepturi");
-    }
+    const stored = getCachedProfile();
+    setUserName(stored.name);
+    setUserAvatar(stored.avatar);
+
+    const loadProfile = async () => {
+      if (auth !== 'true' || !localStorage.getItem('token')) return;
+      try {
+        const user = await getProfile();
+        const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User';
+        setUserName(name);
+        setUserAvatar(resolveAvatarUrl(name, user.profileImage));
+        syncProfileCache({ name, profileImage: user.profileImage || '' });
+      } catch {
+        /* use cache */
+      }
+    };
+    loadProfile();
+
+    const onProfileUpdated = () => {
+      const next = getCachedProfile();
+      setUserName(next.name);
+      setUserAvatar(next.avatar);
+    };
+    window.addEventListener('profile-updated', onProfileUpdated);
+    return () => window.removeEventListener('profile-updated', onProfileUpdated);
   }, [location]);
 
   const handleLogout = () => {
@@ -70,14 +85,34 @@ const Navbar = () => {
   };
   */
 
-  const handleDashboardNavigate = (tab: string) => {
+  const goToDashboard = () => {
+    const role = localStorage.getItem('userRole');
+    if (role === 'admin') navigate('/admin');
+    else if (role === 'tradie') navigate('/tradie-dashboard');
+    else navigate('/user-dashboard');
+    setIsUserDropdownOpen(false);
+  };
+
+  const goToProfileSettings = () => {
     const role = localStorage.getItem('userRole');
     if (role === 'admin') {
-      navigate('/admin', { state: { activeTab: tab } });
+      navigate('/admin', { state: { activeTab: 'settings', settingsTab: 'profile' } });
     } else if (role === 'tradie') {
-      navigate('/tradie-dashboard', { state: { activeTab: tab } });
+      navigate('/tradie-dashboard', { state: { activeTab: 'profile' } });
     } else {
-      navigate('/user-dashboard', { state: { activeTab: tab } });
+      navigate('/user-dashboard', { state: { activeTab: 'profile' } });
+    }
+    setIsUserDropdownOpen(false);
+  };
+
+  const goToSecuritySettings = () => {
+    const role = localStorage.getItem('userRole');
+    if (role === 'admin') {
+      navigate('/admin', { state: { activeTab: 'settings', settingsTab: 'security' } });
+    } else if (role === 'tradie') {
+      navigate('/tradie-dashboard', { state: { activeTab: 'security' } });
+    } else {
+      navigate('/user-dashboard', { state: { activeTab: 'security' } });
     }
     setIsUserDropdownOpen(false);
   };
@@ -213,44 +248,61 @@ const Navbar = () => {
                           <div className="space-y-1">
                             {isAdmin ? (
                               <>
-                                <button 
-                                  onClick={() => navigate('/admin')}
+                                <button
+                                  onClick={goToDashboard}
                                   className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
                                 >
                                   <LayoutDashboard size={18} className="text-white/40 group-hover:text-[#097DDD]" />
                                   <span className="text-sm font-medium text-white/80 group-hover:text-white">Admin Dashboard</span>
                                 </button>
-                                <button 
-                                  onClick={() => handleDashboardNavigate('blogs')}
+                                <button
+                                  onClick={goToProfileSettings}
+                                  className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
+                                >
+                                  <User size={18} className="text-white/40 group-hover:text-[#097DDD]" />
+                                  <span className="text-sm font-medium text-white/80 group-hover:text-white">Profile & Photo</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    navigate('/admin', { state: { activeTab: 'blogs' } });
+                                    setIsUserDropdownOpen(false);
+                                  }}
                                   className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
                                 >
                                   <FileText size={18} className="text-white/40 group-hover:text-[#097DDD]" />
                                   <span className="text-sm font-medium text-white/80 group-hover:text-white">Manage Blogs</span>
                                 </button>
+                                <button
+                                  onClick={goToSecuritySettings}
+                                  className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
+                                >
+                                  <ShieldCheck size={18} className="text-white/40 group-hover:text-[#097DDD]" />
+                                  <span className="text-sm font-medium text-white/80 group-hover:text-white">Security</span>
+                                </button>
                               </>
                             ) : (
                               <>
-                                <button 
-                                  onClick={() => handleDashboardNavigate('profile')}
+                                <button
+                                  onClick={goToDashboard}
+                                  className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
+                                >
+                                  <LayoutDashboard size={18} className="text-white/40 group-hover:text-[#097DDD]" />
+                                  <span className="text-sm font-medium text-white/80 group-hover:text-white">My Dashboard</span>
+                                </button>
+                                <button
+                                  onClick={goToProfileSettings}
                                   className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
                                 >
                                   <User size={18} className="text-white/40 group-hover:text-[#097DDD]" />
-                                  <span className="text-sm font-medium text-white/80 group-hover:text-white">Profile</span>
+                                  <span className="text-sm font-medium text-white/80 group-hover:text-white">Profile & Photo</span>
                                 </button>
-                                <button 
-                                  onClick={() => handleDashboardNavigate('account')}
+                                <button
+                                  onClick={goToSecuritySettings}
                                   className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
                                 >
-                                  <Settings size={18} className="text-white/40 group-hover:text-[#097DDD]" />
-                                  <span className="text-sm font-medium text-white/80 group-hover:text-white">Account</span>
+                                  <ShieldCheck size={18} className="text-white/40 group-hover:text-[#097DDD]" />
+                                  <span className="text-sm font-medium text-white/80 group-hover:text-white">Security</span>
                                 </button>
-                                {/* <button 
-                                  onClick={() => handleDashboardNavigate('jobpost')}
-                                  className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
-                                >
-                                  <Briefcase size={18} className="text-white/40 group-hover:text-[#097DDD]" />
-                                  <span className="text-sm font-medium text-white/80 group-hover:text-white">Job Post</span>
-                                </button> */}
                               </>
                             )}
                             

@@ -13,6 +13,7 @@ import { BlogPage, BlogDetails } from '../pages/Blog/index.ts';
 import BusinessProfile from '../pages/FindAPro/BusinessProfile.tsx';
 import Terms from '../pages/Terms/index.ts';
 import Privacy from '../pages/Privacy/index.ts';
+import Giveaway from '../pages/Giveaway/index.ts';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 
 const AppRoutes = () => {
@@ -33,6 +34,7 @@ const AppRoutes = () => {
       <Route path="/tradie-dashboard" element={<ProtectedRoute element={<TradieDashboard />} requiredRole="tradie" />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/giveaway" element={<Giveaway />} />
     </Routes>
   );
 };
