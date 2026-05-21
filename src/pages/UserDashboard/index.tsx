@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, ShieldCheck, Briefcase, LogOut, CheckCircle, HardHat, X } from 'lucide-react';
+import { User, ShieldCheck, Briefcase, LogOut, CheckCircle, HardHat } from 'lucide-react';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import UserProfileSection from '../Admin/sections/user/UserProfileSection';
 import UserSecuritySection from '../Admin/sections/user/UserSecuritySection';

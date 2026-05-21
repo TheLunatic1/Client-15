@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, MapPin, Loader2, Eye } from 'lucide-react';
+import { MapPin, Loader2, Eye } from 'lucide-react';
 import BusinessReviewModal, { type BusinessSubmission } from './BusinessReviewModal';
 import RejectionReasonModal from './RejectionReasonModal';
 
