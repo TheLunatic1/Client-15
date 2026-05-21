@@ -193,6 +193,7 @@ const AdminDashboard = () => {
     category: '',
     image: '',      // always a URL string — never base64
     excerpt: '',
+    content: '',
     publisher: '',
   });
 
@@ -208,6 +209,7 @@ const AdminDashboard = () => {
         category: targetBlog.categoryId || '',
         image: targetBlog.image || '',
         excerpt: targetBlog.excerpt || '',
+        content: targetBlog.content || '',
         publisher: targetBlog.publisher || 'System Admin',
       });
     } else {
@@ -217,6 +219,7 @@ const AdminDashboard = () => {
         category: categoriesList.length > 0 ? (categoriesList[0]._id || categoriesList[0].id) : '',
         image: '',
         excerpt: '',
+        content: '',
         publisher: 'System Admin',
       });
     }
@@ -250,6 +253,7 @@ const AdminDashboard = () => {
         category: blogForm.category,
         image: blogForm.image,   // URL from upload API
         excerpt: blogForm.excerpt,
+        content: blogForm.content,
         writer: blogForm.publisher,
       };
       if (editingBlog) {
@@ -845,10 +849,22 @@ const AdminDashboard = () => {
                 <div className="space-y-3">
                   <label className="text-[12px] font-black uppercase tracking-widest text-slate-400 ml-1">Excerpt / Short Description</label>
                   <textarea 
-                    rows={4} 
+                    rows={2} 
                     value={blogForm.excerpt}
                     onChange={(e) => setBlogForm({...blogForm, excerpt: e.target.value})}
                     placeholder="Briefly describe what this post is about..." 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all resize-none leading-relaxed"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[12px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Blog Content (Description)</label>
+                  <textarea 
+                    rows={6} 
+                    value={blogForm.content}
+                    onChange={(e) => setBlogForm({...blogForm, content: e.target.value})}
+                    placeholder="Write the full blog post content here..." 
                     className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] px-6 py-4 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#097DDD] transition-all resize-none leading-relaxed"
                     required
                   />

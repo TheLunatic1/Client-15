@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Link as LinkIcon, ChevronRight, Loader2 } from 'lucide-react';
+import { Calendar, Link as LinkIcon, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 
 const Facebook = (props: any) => (
   <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -20,11 +21,15 @@ const BlogDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [post, setPost] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     if (!id) return;
     getBlogById(id)
-      .then((data) => setPost(data))
+      .then((data) => {
+        setPost(data);
+        setSelectedImageIndex(0);
+      })
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, [id]);
@@ -54,6 +59,8 @@ const BlogDetails = () => {
     : post.date || '';
   const category = post.category?.name || post.category || 'BLOG';
   const image = post.image || 'https://images.unsplash.com/photo-1504148455328-c6769171d3d2?auto=format&fit=crop&q=80&w=1600';
+  const images = Array.isArray(post.images) && post.images.length > 0 ? post.images : [image];
+  const currentImage = images[selectedImageIndex] || image;
   const tags = post.tags || [category];
 
 
@@ -115,8 +122,57 @@ const BlogDetails = () => {
         </div>
       </section>
 
+      {/* ── Featured Image Slider ── */}
+      <section className="px-6 relative z-10 -mt-12 mb-12">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="relative rounded-[2rem] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.3)]"
+          >
+            <img
+              src={currentImage}
+              alt={`${post.title} image ${selectedImageIndex + 1}`}
+              className="w-full h-[320px] md:h-[380px] object-cover"
+            />
+
+            <div className="absolute inset-x-0 top-1/2 flex items-center justify-between px-4 pointer-events-none">
+              <button
+                type="button"
+                onClick={() => setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length)}
+                className="pointer-events-auto rounded-full bg-black/30 p-2 text-white transition hover:bg-black/50"
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedImageIndex((prev) => (prev + 1) % images.length)}
+                className="pointer-events-auto rounded-full bg-black/30 p-2 text-white transition hover:bg-black/50"
+                aria-label="Next image"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+
+            <div className="absolute inset-x-0 bottom-0 pb-4 flex items-center justify-center gap-2">
+              {images.map((_: string, idx: number) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedImageIndex(idx)}
+                  className={`h-2.5 w-2.5 rounded-full transition ${idx === selectedImageIndex ? 'bg-white' : 'bg-white/40 hover:bg-white'}`}
+                  aria-label={`Select image ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── Content Section ── */}
-      <main className="pb-32 px-6 relative z-10 -mt-16">
+      <main className="pb-32 px-6 relative z-10">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -124,7 +180,7 @@ const BlogDetails = () => {
             transition={{ delay: 0.3 }}
             className="bg-white rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] overflow-hidden"
           >
-            <div className="p-8 md:p-16 lg:p-20">
+            <div className="p-8 md:p-16 lg:p-20 text-[#5a6a85]">
               <div className="prose prose-slate max-w-none prose-headings:text-[#0A1830] prose-headings:font-black prose-p:text-[#5a6a85] prose-p:leading-[1.8] prose-p:font-medium prose-strong:text-[#0A1830] prose-li:text-[#5a6a85] prose-li:font-medium">
                 <div dangerouslySetInnerHTML={{ __html: post.content || `<p>${post.excerpt || ''}</p>` }} />
               </div>
