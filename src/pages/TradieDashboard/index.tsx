@@ -45,17 +45,17 @@ const initialData = {
     yearsInBusiness: '10'
   },
   businessesList: [
-    { id: 1, name: 'JD Plumbing Services', category: 'Plumber', status: 'Approved', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800' },
-    { id: 2, name: 'JD Plumbing Services (Commercial)', category: 'Plumber', status: 'Pending', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=800' },
-    { id: 3, name: 'JD Emergency Gas Fitting', category: 'Gas Fitters', status: 'Rejected', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&q=80&w=800' }
+    { id: '1', name: 'JD Plumbing Services', category: 'Plumber', status: 'Approved', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800' },
+    { id: '2', name: 'JD Plumbing Services (Commercial)', category: 'Plumber', status: 'Pending', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=800' },
+    { id: '3', name: 'JD Emergency Gas Fitting', category: 'Gas Fitters', status: 'Rejected', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&q=80&w=800' }
   ],
   description: {
     shortDescription: 'Reliable and licensed plumbing services across Hobart.',
     longDescription: 'With over 10 years of experience, JD Plumbing Services provides top-notch residential and commercial plumbing solutions. From leaky taps to complete bathroom renovations, we do it all with a guarantee of quality and professionalism.'
   },
   gallery: [
-    { id: 1, url: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800', title: 'Bathroom Renovation' },
-    { id: 2, url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=800', title: 'Pipe Installation' }
+    { id: '1', url: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800', title: 'Bathroom Renovation' },
+    { id: '2', url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=800', title: 'Pipe Installation' }
   ]
 };
 
