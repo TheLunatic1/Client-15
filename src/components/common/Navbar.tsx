@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Menu, X, ChevronDown, Search, Target, LogOut, MapPin as MapPinIcon, LayoutDashboard, FileText, ShieldCheck } from 'lucide-react';
+import { User, Menu, X, ChevronDown, Search, Target, LogOut, LayoutDashboard, FileText, ShieldCheck } from 'lucide-react';
 import { getProfile } from '../../api/userApi';
 import { getCachedProfile, resolveAvatarUrl, syncProfileCache } from '../../utils/profileUtils';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
