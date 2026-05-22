@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Mail, MapPin, Phone, CheckCircle2, ArrowRight } from "lucide-react";
+import { Mail, MapPin, Phone, CheckCircle2, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { validateContactForm, showValidationAlert } from "../../utils/validation";
+import { submitContactForm } from "../../api/contactApi";
 
 const contactItems = [
   { icon: Mail, label: "Email", value: "contactmylocalpro@gmail.com" },
@@ -14,19 +15,58 @@ const inputCls = "w-full block rounded-[10px] border border-[#cdd6e3] bg-[#E4EAF
 
 export const ContactFormSection = () => {
   const [sent, setSent] = useState(false);
+  const [sentMessage, setSentMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
     const check = validateContactForm({ name, email, subject, message });
     if (!check.ok) {
       showValidationAlert(check.message);
+      setError(check.message);
       return;
     }
-    setSent(true);
+
+    setLoading(true);
+
+    try {
+      const response = await submitContactForm({
+        name,
+        email,
+        subject,
+        message,
+      });
+
+      if (response.success) {
+        if (response.partial) {
+          setError(response.message);
+          return;
+        }
+
+        setSentMessage(response.message);
+        setSent(true);
+        setTimeout(() => {
+          setSent(false);
+          setSentMessage(null);
+          setName("");
+          setEmail("");
+          setSubject("");
+          setMessage("");
+        }, 4000);
+        return;
+      }
+
+      setError(response.message || "Failed to send message. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,7 +120,7 @@ export const ContactFormSection = () => {
                 <CheckCircle2 size={32} className="text-[#097DDD]" />
               </div>
               <h2 className="font-black text-[1.4rem] text-[#0A1830] mb-1.5">Message sent!</h2>
-              <p className="text-[#5a7089]">We&rsquo;ll get back to you shortly.</p>
+              <p className="text-[#5a7089]">{sentMessage || "We\u2019ll get back to you shortly."}</p>
             </div>
           ) : (
             <>
@@ -88,6 +128,20 @@ export const ContactFormSection = () => {
                 <h2 className="font-black text-[1.15rem] text-[#0A1830] mb-1">Send us a message</h2>
                 <p className="text-[0.85rem] text-[#5a7089]">Fill out the form and we&rsquo;ll be in touch.</p>
               </div>
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 flex items-start gap-3 bg-red-50 border border-red-200 rounded-[12px] p-4"
+                >
+                  <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-red-900 text-sm">{error}</p>
+                  </div>
+                </motion.div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className={labelCls}>Name</label>
@@ -99,6 +153,7 @@ export const ContactFormSection = () => {
                     onChange={(e) => setName(e.target.value)}
                     minLength={2}
                     maxLength={100}
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -109,6 +164,7 @@ export const ContactFormSection = () => {
                     className={inputCls}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -122,6 +178,7 @@ export const ContactFormSection = () => {
                   onChange={(e) => setSubject(e.target.value)}
                   minLength={3}
                   maxLength={120}
+                  disabled={loading}
                 />
               </div>
               <div className="mb-6">
@@ -134,14 +191,29 @@ export const ContactFormSection = () => {
                   onChange={(e) => setMessage(e.target.value)}
                   minLength={10}
                   maxLength={2000}
+                  disabled={loading}
                 />
               </div>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2.5 bg-[#097DDD] text-white font-black text-[11px] uppercase tracking-[0.18em] rounded-xl py-[15px] px-6 shadow-[0_4px_20px_rgba(9,125,221,0.4)] hover:bg-[#0a8ef0] transition-all duration-200 cursor-pointer"
+                disabled={loading}
+                className={`w-full flex items-center justify-center gap-2.5 font-black text-[11px] uppercase tracking-[0.18em] rounded-xl py-[15px] px-6 transition-all duration-200 ${
+                  loading
+                    ? 'bg-[#097DDD]/50 text-white cursor-not-allowed'
+                    : 'bg-[#097DDD] text-white hover:bg-[#0a8ef0] cursor-pointer shadow-[0_4px_20px_rgba(9,125,221,0.4)]'
+                }`}
               >
-                Send Message
-                <ArrowRight size={16} />
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    Send Message
+                    <ArrowRight size={16} />
+                  </>
+                )}
               </button>
             </>
           )}

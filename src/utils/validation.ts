@@ -35,12 +35,22 @@ export const validateEmail = (email: string): ValidationResult => {
   return pass();
 };
 
+/** Shown under password fields (signup, change password) */
+export const PASSWORD_REQUIREMENTS_HINT =
+  'At least 8 characters with 1 uppercase, 1 lowercase, and 1 symbol (e.g. ! @ # $).';
+
 export const validatePassword = (password: string, label = 'Password'): ValidationResult => {
   if (!password) return fail(`${label} is required.`);
   if (password.length < 8) return fail(`${label} must be at least 8 characters.`);
   if (password.length > 128) return fail(`${label} is too long (max 128 characters).`);
-  if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
-    return fail(`${label} must include at least one letter and one number.`);
+  if (!/[A-Z]/.test(password)) {
+    return fail(`${label} must include at least one uppercase letter.`);
+  }
+  if (!/[a-z]/.test(password)) {
+    return fail(`${label} must include at least one lowercase letter.`);
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return fail(`${label} must include at least one symbol (e.g. ! @ # $).`);
   }
   return pass();
 };

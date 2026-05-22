@@ -14,9 +14,9 @@ const Home = () => {
     <div className="bg-white overflow-x-hidden">
       <Hero />
       <SkilledTradieCTA />
+      <GiveawaySection />
       {/* <RequestedServices /> */}
       <HowItWorks />
-      <GiveawaySection />
       {/* <TradeSlider /> */}
       <FindTradies />
       <ReviewedTradies />

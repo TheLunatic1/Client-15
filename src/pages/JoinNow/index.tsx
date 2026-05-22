@@ -14,6 +14,7 @@ import {
   validateCustomerRegistration,
   validateTradieRegistration,
   showValidationAlert,
+  PASSWORD_REQUIREMENTS_HINT,
 } from '../../utils/validation';
 
 const JoinNow = () => {
@@ -377,6 +378,7 @@ const JoinNow = () => {
                           </div>
                         </div>
                       </div>
+                      <p className="text-[10px] text-white/45 font-medium -mt-2">{PASSWORD_REQUIREMENTS_HINT}</p>
 
                       {/* Terms */}
                       <div className="pt-2">
@@ -464,6 +466,7 @@ const JoinNow = () => {
                             className="w-full pl-14 pr-6 py-4 bg-white rounded-2xl text-slate-900 font-bold placeholder:text-slate-300 focus:outline-none transition-all shadow-inner text-[13px]"
                           />
                         </div>
+                        <p className="text-[10px] text-white/45 font-medium mt-1">{PASSWORD_REQUIREMENTS_HINT}</p>
                       </div>
                       <button
                         type="submit"

@@ -23,7 +23,7 @@ const BecomeTradieModal = ({ onClose }: BecomeTradieModalProps) => {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-[#050f26]/80 backdrop-blur-md"
+        className="absolute inset-0 bg-[#050f26]/80 backdrop-blur-md cursor-pointer"
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 24 }}

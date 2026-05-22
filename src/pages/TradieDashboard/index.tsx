@@ -9,8 +9,7 @@ import {
   User, Briefcase, LogOut,
   AlertCircle,
   LayoutDashboard,
-  FileText, Image as ImageIcon,
-  Save, Plus, Trash2, Camera, Phone, Mail, MapPin, Globe, CheckCircle, Clock, ShieldCheck, Lock, Edit2
+  Plus, Trash2, MapPin, CheckCircle, Clock, ShieldCheck, Lock, Edit2
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -23,15 +22,14 @@ import LoadingScreen from '../../components/common/LoadingScreen';
 import { NotificationBell } from '../../components/common/NotificationBell';
 import DashboardProfileChip from '../../components/common/DashboardProfileChip';
 import UserProfileSection from '../Admin/sections/user/UserProfileSection';
+import BusinessEditModal, { type BusinessEditForm } from './BusinessEditModal';
+import { getMyListings } from '../../api/businessApi';
 import { getProfile } from '../../api/userApi';
 import { resolveAvatarUrl, syncProfileCache } from '../../utils/profileUtils';
 import {
   validatePasswordChange,
-  validateNamePart,
-  validateEmail,
-  validatePhoneAU,
   showValidationAlert,
-  runValidations,
+  PASSWORD_REQUIREMENTS_HINT,
 } from '../../utils/validation';
 
 // Simulated initial data
@@ -56,19 +54,14 @@ const initialData = {
     website: 'www.jdplumbing.com.au',
     yearsInBusiness: '10'
   },
-  businessesList: [
-    { id: '1', name: 'JD Plumbing Services', category: 'Plumber', status: 'Approved', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800' },
-    { id: '2', name: 'JD Plumbing Services (Commercial)', category: 'Plumber', status: 'Pending', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=800' },
-    { id: '3', name: 'JD Emergency Gas Fitting', category: 'Gas Fitters', status: 'Rejected', location: 'Hobart Region (TAS)', image: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&q=80&w=800' }
-  ],
-  description: {
-    shortDescription: 'Reliable and licensed plumbing services across Hobart.',
-    longDescription: 'With over 10 years of experience, JD Plumbing Services provides top-notch residential and commercial plumbing solutions. From leaky taps to complete bathroom renovations, we do it all with a guarantee of quality and professionalism.'
-  },
-  gallery: [
-    { id: '1', url: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800', title: 'Bathroom Renovation' },
-    { id: '2', url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=800', title: 'Pipe Installation' }
-  ]
+  businessesList: [] as Array<{
+    id: string;
+    name: string;
+    category: string;
+    status: string;
+    location: string;
+    image: string;
+  }>,
 };
 
 // Premium Modal Component
@@ -109,11 +102,37 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText, type =
   );
 };
 
+const formatBusinessStatus = (status: string) => {
+  if (status === 'pending_delete') return 'Pending Delete';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
+
+const businessToEditForm = (b: any): BusinessEditForm => ({
+  businessName: b.businessName || '',
+  abn: b.abn || '',
+  category: b.category || '',
+  location: b.location || '',
+  suburb: b.suburb || '',
+  servicesOffered: b.servicesOffered || '',
+  website: b.website || '',
+  yearsInBusiness: b.yearsInBusiness || '',
+  shortDescription: b.shortDescription || '',
+  longDescription: b.longDescription || '',
+  contactPhone: b.contactPhone || '',
+  contactEmail: b.contactEmail || '',
+});
+
 const TradieDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
   const [formData, setFormData] = useState(initialData);
+  const [listings, setListings] = useState<any[]>([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editBusinessId, setEditBusinessId] = useState<string | null>(null);
+  const [editBusinessName, setEditBusinessName] = useState('');
+  const [editBusinessStatus, setEditBusinessStatus] = useState('');
+  const [editFormData, setEditFormData] = useState<BusinessEditForm | null>(null);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState({
@@ -132,23 +151,62 @@ const TradieDashboard = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const mapListingsToCards = (businesses: any[]) =>
+    businesses.map((b: any) => ({
+      id: b._id,
+      name: b.businessName,
+      category: b.category,
+      status: formatBusinessStatus(b.status),
+      location: b.location,
+      image:
+        b.gallery && b.gallery.length > 0
+          ? b.gallery[0].url
+          : 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800',
+    }));
+
+  const refreshListings = async () => {
+    const businesses = await getMyListings();
+    setListings(businesses);
+    setFormData((prev) => ({
+      ...prev,
+      businessesList: mapListingsToCards(businesses),
+    }));
+  };
+
+  const openEditBusiness = (id: string) => {
+    const biz = listings.find((b) => b._id === id);
+    if (!biz) return;
+    setEditBusinessId(biz._id);
+    setEditBusinessName(biz.businessName);
+    setEditBusinessStatus(formatBusinessStatus(biz.status));
+    setEditFormData(businessToEditForm(biz));
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditBusinessId(null);
+    setEditFormData(null);
+  };
+
   useEffect(() => {
-    if (location.state && (location.state as any).activeTab) {
-      setActiveTab((location.state as any).activeTab);
-    } 
-    
-    // Fetch data from backend
+    const tabFromState = (location.state as { activeTab?: string } | null)?.activeTab;
+    if (tabFromState === 'business') {
+      setActiveTab('my-businesses');
+    } else if (tabFromState) {
+      setActiveTab(tabFromState);
+    }
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [profileRes, , businessesRes] = await Promise.all([
+        const [profileRes, , businesses] = await Promise.all([
           axiosClient.get('/api/users/profile'),
           axiosClient.get('/api/stats/tradie'),
-          axiosClient.get('/api/businesses/my/listings')
+          getMyListings(),
         ]);
-        
+
         const profile = profileRes.data;
-        const businesses = businessesRes.data;
         const displayName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Tradie';
         const avatar = resolveAvatarUrl(displayName, profile.profileImage);
         syncProfileCache({ name: displayName, profileImage: profile.profileImage || '' });
@@ -163,8 +221,7 @@ const TradieDashboard = () => {
           roleLabel: 'Tradie Account',
         });
 
-        const mainBusiness = businesses.length > 0 ? businesses[0] : {};
-
+        setListings(businesses);
         setFormData({
           contact: {
             firstName: profile.firstName || '',
@@ -174,32 +231,10 @@ const TradieDashboard = () => {
             address: profile.address || '',
             city: profile.city || '',
             state: profile.state || '',
-            postcode: profile.postcode || ''
+            postcode: profile.postcode || '',
           },
-          business: {
-            id: mainBusiness._id || '',
-            businessName: mainBusiness.businessName || '',
-            abn: mainBusiness.abn || '',
-            category: mainBusiness.category || '',
-            location: mainBusiness.location || '',
-            suburb: mainBusiness.suburb || '',
-            servicesOffered: mainBusiness.servicesOffered || '',
-            website: mainBusiness.website || '',
-            yearsInBusiness: mainBusiness.yearsInBusiness || ''
-          } as any,
-          businessesList: businesses.map((b: any) => ({
-            id: b._id,
-            name: b.businessName,
-            category: b.category,
-            status: b.status.charAt(0).toUpperCase() + b.status.slice(1),
-            location: b.location,
-            image: b.gallery && b.gallery.length > 0 ? b.gallery[0].url : 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800'
-          })),
-          description: {
-            shortDescription: mainBusiness.description || '',
-            longDescription: mainBusiness.longDescription || ''
-          },
-          gallery: mainBusiness.gallery || []
+          business: initialData.business,
+          businessesList: mapListingsToCards(businesses),
         });
       } catch (error) {
         console.warn('Failed to load tradie data from backend, using fallback data.', error);
@@ -229,40 +264,12 @@ const TradieDashboard = () => {
           showValidationAlert(pwCheck.message);
           return;
         }
-        await axiosClient.put('/api/users/profile/password', { currentPassword, newPassword });
-        setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-      } else if (section === 'Business Profile') {
-        const profileCheck = runValidations(
-          validateNamePart(formData.contact.firstName, 'First name'),
-          validateNamePart(formData.contact.lastName, 'Last name'),
-          validateEmail(formData.contact.email),
-          validatePhoneAU(formData.contact.phone, false)
-        );
-        if (!profileCheck.ok) {
-          showValidationAlert(profileCheck.message);
-          return;
-        }
-        await axiosClient.put('/api/users/profile', {
-          firstName: formData.contact.firstName.trim(),
-          lastName: formData.contact.lastName.trim(),
-          phone: formData.contact.phone.trim(),
-          address: formData.contact.address?.trim(),
-          city: formData.contact.city?.trim(),
-          state: formData.contact.state?.trim(),
-          postcode: formData.contact.postcode?.trim(),
+        await axiosClient.put('/api/users/profile/password', {
+          currentPassword,
+          newPassword,
+          confirmPassword,
         });
-        
-        // Update Business if ID exists
-        const bId = (formData.business as any).id;
-        if (bId) {
-          await axiosClient.put(`/api/businesses/${bId}`, {
-            businessName: formData.business.businessName,
-            category: formData.business.category,
-            location: formData.business.location,
-            description: formData.description.shortDescription,
-            // Include other mapped fields if API supports them
-          });
-        }
+        setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       }
 
       Swal.fire({
@@ -285,16 +292,6 @@ const TradieDashboard = () => {
         confirmButtonColor: '#097DDD'
       });
     }
-  };
-
-  const handleInputChange = (section: keyof typeof formData, field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof Omit<typeof formData, 'gallery'>],
-        [field]: value
-      }
-    }));
   };
 
   const handleDeleteListing = async (id: string, name: string) => {
@@ -329,20 +326,7 @@ const TradieDashboard = () => {
           }
         });
 
-        // Fetch fresh listings
-        const businessesRes = await axiosClient.get('/api/businesses/my/listings');
-        const businesses = businessesRes.data;
-        setFormData(prev => ({
-          ...prev,
-          businessesList: businesses.map((b: any) => ({
-            id: b._id,
-            name: b.businessName,
-            category: b.category,
-            status: b.status.charAt(0).toUpperCase() + b.status.slice(1),
-            location: b.location,
-            image: b.gallery && b.gallery.length > 0 ? b.gallery[0].url : 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800'
-          }))
-        }));
+        await refreshListings();
       } catch (err: any) {
         Swal.fire({
           title: 'Error',
@@ -360,7 +344,6 @@ const TradieDashboard = () => {
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
     { id: 'profile', name: 'Account Profile', icon: User },
     { id: 'my-businesses', name: 'My Businesses', icon: Briefcase },
-    { id: 'business', name: 'Business Details', icon: FileText },
     { id: 'security', name: 'Security Center', icon: ShieldCheck },
   ];
 
@@ -546,14 +529,28 @@ const TradieDashboard = () => {
                 <Plus size={14} /> Add New Business
               </button>
             </div>
+            {formData.businessesList.length === 0 ? (
+              <div className="text-center py-16 rounded-2xl border border-dashed border-slate-200 bg-slate-50">
+                <Briefcase className="mx-auto text-slate-300 mb-4" size={40} />
+                <p className="font-bold text-slate-600 mb-2">No businesses listed yet</p>
+                <p className="text-sm text-slate-400 mb-6">Add your first listing to get started.</p>
+                <button
+                  onClick={() => navigate('/list-your-business')}
+                  className="bg-[#097DDD] hover:bg-[#0869bb] text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px]"
+                >
+                  List your business
+                </button>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {formData.businessesList.map((biz) => (
                 <div key={biz.id} className="border border-slate-200 rounded-2xl flex flex-col justify-between hover:border-[#097DDD]/30 transition-colors overflow-hidden bg-white shadow-sm group">
                   <div className="h-40 w-full bg-slate-100 relative overflow-hidden">
                     <img src={biz.image} alt={biz.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                     <span className={`absolute top-4 right-4 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg backdrop-blur-md ${
-                      biz.status.toLowerCase().includes('approved') ? 'bg-emerald-500/90 text-white' : 
-                      biz.status.toLowerCase().includes('delete') ? 'bg-rose-500/90 text-white' : 
+                      biz.status.toLowerCase().includes('approved') ? 'bg-emerald-500/90 text-white' :
+                      biz.status.toLowerCase().includes('rejected') ? 'bg-rose-500/90 text-white' :
+                      biz.status.toLowerCase().includes('delete') ? 'bg-rose-500/90 text-white' :
                       'bg-amber-500/90 text-white'
                     }`}>
                       {biz.status}
@@ -563,9 +560,17 @@ const TradieDashboard = () => {
                     <h4 className="font-bold text-slate-800 text-lg mb-2">{biz.name}</h4>
                     <p className="text-xs text-slate-500 mb-1 font-bold">{biz.category}</p>
                     <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin size={12} /> {biz.location}</p>
+                    {biz.status === 'Rejected' && (
+                      <p className="text-[10px] text-rose-600 font-bold mt-3 leading-relaxed">
+                        Rejected — edit and resubmit for admin approval.
+                      </p>
+                    )}
                     <div className="mt-6 flex gap-3">
-                      <button onClick={() => setActiveTab('business')} className="flex-grow justify-center text-[#097DDD] hover:text-[#0869bb] text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors bg-[#097DDD]/5 px-4 py-3 rounded-xl hover:bg-[#097DDD]/10">
-                        <Edit2 size={12} /> Edit Details
+                      <button
+                        onClick={() => openEditBusiness(biz.id)}
+                        className="flex-grow justify-center text-[#097DDD] hover:text-[#0869bb] text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors bg-[#097DDD]/5 px-4 py-3 rounded-xl hover:bg-[#097DDD]/10"
+                      >
+                        <Edit2 size={12} /> {biz.status === 'Rejected' ? 'Edit & resubmit' : 'Edit details'}
                       </button>
                       <button 
                         onClick={() => handleDeleteListing(biz.id, biz.name)}
@@ -579,301 +584,17 @@ const TradieDashboard = () => {
                 </div>
               ))}
             </div>
-          </motion.div>
-        );
-
-      case 'business':
-        return (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8 bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-            
-            {/* 1. Business Details Section */}
-            <div className="mb-12">
-              <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
-                <Briefcase className="text-[#097DDD]" size={24} /> Business Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Business Name</label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.business.businessName}
-                      onChange={(e) => handleInputChange('business', 'businessName', e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">ABN / ACN</label>
-                  <input
-                    type="text"
-                    value={formData.business.abn}
-                    onChange={(e) => handleInputChange('business', 'abn', e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Service Category *</label>
-                  <input
-                    type="text"
-                    value={formData.business.category}
-                    onChange={(e) => handleInputChange('business', 'category', e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Location</label>
-                  <div className="relative">
-                    <select
-                      value={formData.business.location}
-                      onChange={(e) => handleInputChange('business', 'location', e.target.value)}
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all appearance-none"
-                    >
-                      <option value="">Choose a location</option>
-                      <option value="Hobart Region (TAS)">Hobart Region (TAS)</option>
-                      <option value="Launceston Region (TAS)">Launceston Region (TAS)</option>
-                      <option value="Devonport Region (TAS)">Devonport Region (TAS)</option>
-                      <option value="Burnie Region (TAS)">Burnie Region (TAS)</option>
-                      <option value="North Brisbane (QLD)">North Brisbane (QLD)</option>
-                      <option value="South Brisbane (QLD)">South Brisbane (QLD)</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
-                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Suburb</label>
-                  <input
-                    type="text"
-                    value={formData.business.suburb}
-                    onChange={(e) => handleInputChange('business', 'suburb', e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Services Offered (Comma Separated)</label>
-                  <input
-                    type="text"
-                    value={formData.business.servicesOffered}
-                    onChange={(e) => handleInputChange('business', 'servicesOffered', e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                    placeholder="e.g. Emergency repairs, Hot water, Gas fitting"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Website URL</label>
-                  <div className="relative">
-                    <Globe className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.business.website}
-                      onChange={(e) => handleInputChange('business', 'website', e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Years in Business</label>
-                  <input
-                    type="text"
-                    value={formData.business.yearsInBusiness}
-                    onChange={(e) => handleInputChange('business', 'yearsInBusiness', e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <hr className="border-slate-100 my-10" />
-
-            {/* 2. Contact Information Section */}
-            <div className="mb-12">
-              <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
-                <User className="text-[#097DDD]" size={24} /> Contact Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">First Name</label>
-                  <div className="relative">
-                    <User className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.contact.firstName}
-                      onChange={(e) => handleInputChange('contact', 'firstName', e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Last Name</label>
-                  <div className="relative">
-                    <User className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.contact.lastName}
-                      onChange={(e) => handleInputChange('contact', 'lastName', e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="email"
-                      value={formData.contact.email}
-                      onChange={(e) => handleInputChange('contact', 'email', e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.contact.phone}
-                      onChange={(e) => handleInputChange('contact', 'phone', e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Address</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.contact.address}
-                      onChange={(e) => handleInputChange('contact', 'address', e.target.value)}
-                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">City</label>
-                  <input
-                    type="text"
-                    value={formData.contact.city}
-                    onChange={(e) => handleInputChange('contact', 'city', e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">State & Postcode</label>
-                  <div className="flex gap-4">
-                    <input
-                      type="text"
-                      value={formData.contact.state}
-                      onChange={(e) => handleInputChange('contact', 'state', e.target.value)}
-                      className="w-1/2 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                    />
-                    <input
-                      type="text"
-                      value={formData.contact.postcode}
-                      onChange={(e) => handleInputChange('contact', 'postcode', e.target.value)}
-                      className="w-1/2 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all placeholder:text-slate-400"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <hr className="border-slate-100 my-10" />
-
-            {/* 3. Descriptions Section */}
-            <div className="mb-12">
-              <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
-                <FileText className="text-[#097DDD]" size={24} /> Profile Descriptions
-              </h3>
-              <div className="space-y-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 block">Short Description</label>
-                  <p className="text-xs text-slate-400 mb-2 ml-1">A brief summary of what your business does (max 150 chars).</p>
-                  <textarea
-                    value={formData.description.shortDescription}
-                    onChange={(e) => handleInputChange('description', 'shortDescription', e.target.value)}
-                    rows={2}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all resize-none"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 block">Detailed Writeup / About Us</label>
-                  <p className="text-xs text-slate-400 mb-2 ml-1">Provide a comprehensive description of your services, history, and why customers should choose you.</p>
-                  <textarea
-                    value={formData.description.longDescription}
-                    onChange={(e) => handleInputChange('description', 'longDescription', e.target.value)}
-                    rows={8}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-medium focus:outline-none focus:border-[#097DDD] focus:ring-4 focus:ring-[#097DDD]/10 transition-all resize-y"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <hr className="border-slate-100 my-10" />
-
-            {/* 4. Gallery Section */}
-            <div>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
-                    <ImageIcon className="text-[#097DDD]" size={24} /> Job Images
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-2">Upload images of your past work to showcase on your profile.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {formData.gallery.map((image) => (
-                  <div key={image.id} className="relative group rounded-3xl overflow-hidden aspect-video border border-slate-200">
-                    <img src={image.url} alt={image.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-4">
-                      <div className="flex justify-end">
-                        <button className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-xl transition-colors shadow-lg">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                      <div>
-                        <p className="text-white font-bold text-sm truncate">{image.title}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Upload Placeholder */}
-                <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 aspect-video flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:text-[#097DDD] transition-all group">
-                  <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Camera className="w-6 h-6 text-slate-400 group-hover:text-[#097DDD]" />
-                  </div>
-                  <p className="text-[11px] font-black text-slate-600 group-hover:text-[#097DDD] uppercase tracking-widest">Upload New</p>
-                  <p className="text-[10px] text-slate-400 mt-2">Drag & drop or click</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-8 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => handleSave('Business Profile')}
-                className="bg-[#097DDD] hover:bg-[#0869bb] text-white px-10 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center gap-3 shadow-lg shadow-[#097DDD]/20"
-              >
-                <Save size={16} /> Save All Changes
-              </button>
-            </div>
+            )}
           </motion.div>
         );
 
       case 'security':
         return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8 bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-            <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
+            <h3 className="text-xl font-black text-slate-800 mb-2 flex items-center gap-3">
               <ShieldCheck className="text-[#097DDD]" size={24} /> Security Center
             </h3>
+            <p className="text-slate-500 text-sm mb-6 max-w-md">{PASSWORD_REQUIREMENTS_HINT}</p>
             <div className="max-w-md space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Current Password</label>
@@ -1005,6 +726,16 @@ const TradieDashboard = () => {
           </AnimatePresence>
         </div>
       </main>
+
+      <BusinessEditModal
+        isOpen={isEditModalOpen}
+        businessId={editBusinessId}
+        businessName={editBusinessName}
+        status={editBusinessStatus}
+        initialData={editFormData}
+        onClose={closeEditModal}
+        onSaved={refreshListings}
+      />
 
       {/* Modals */}
       <AnimatePresence>

@@ -3,7 +3,11 @@ import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import Swal from 'sweetalert2';
 import axiosClient from '../../../../api/axios';
-import { validatePasswordChange, showValidationAlert } from '../../../../utils/validation';
+import {
+  validatePasswordChange,
+  showValidationAlert,
+  PASSWORD_REQUIREMENTS_HINT,
+} from '../../../../utils/validation';
 
 const UserSecuritySection = () => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -26,7 +30,8 @@ const UserSecuritySection = () => {
     try {
       await axiosClient.put('/api/users/profile/password', {
         currentPassword,
-        newPassword
+        newPassword,
+        confirmPassword,
       });
       Swal.fire('Success', 'Password updated successfully.', 'success');
       setCurrentPassword('');
@@ -57,7 +62,7 @@ const UserSecuritySection = () => {
             </div>
             <div>
               <h3 className="text-xl font-black text-slate-900 mb-4">Change Password</h3>
-              <p className="text-slate-400 text-[13px] leading-relaxed font-medium">Ensure your password is at least 8 characters long and contains a mix of symbols, numbers, and letters.</p>
+              <p className="text-slate-400 text-[13px] leading-relaxed font-medium">{PASSWORD_REQUIREMENTS_HINT}</p>
             </div>
           </div>
           <div className="space-y-6">

@@ -57,7 +57,7 @@ const Login = () => {
         } else if (targetRole === 'tradie') {
           navigate('/tradie-dashboard');
         } else {
-          navigate('/user-dashboard');
+          navigate('/find-a-pro');
         }
       }, 1000);
       return;
@@ -70,7 +70,7 @@ const Login = () => {
       if (email === superUserEmail && password === superUserPass) {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', 'user');
-        navigate('/user-dashboard');
+        navigate('/find-a-pro');
       } else if (email === adminEmail && password === adminPass) {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', 'admin');

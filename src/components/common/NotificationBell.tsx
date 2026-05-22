@@ -16,6 +16,7 @@ export const NotificationBell = ({ theme = 'dark' }: NotificationBellProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const fetchNotifications = async () => {
     const auth = localStorage.getItem('isLoggedIn');
@@ -81,13 +82,39 @@ export const NotificationBell = ({ theme = 'dark' }: NotificationBellProps) => {
     }
   };
 
-  const handleDeleteNotification = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Avoid triggering route redirection
+  const handleDeleteNotification = async (e: React.MouseEvent, notif: NotificationItem) => {
+    e.stopPropagation();
+    const { _id: id } = notif;
+
+    if (deletingIds.has(id)) return;
+
+    const wasUnread = !notif.isRead;
+    const previous = notifications;
+
+    setDeletingIds((prev) => new Set(prev).add(id));
+    setNotifications((prev) => prev.filter((n) => n._id !== id));
+    if (wasUnread) {
+      setUnreadCount((c) => Math.max(0, c - 1));
+    }
+
     try {
       await notificationApi.deleteNotification(id);
-      await fetchNotifications();
-    } catch (err) {
-      console.error('Failed to delete notification:', err);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      // Already removed (double-click / race) — keep optimistic UI
+      if (status !== 404) {
+        setNotifications(previous);
+        if (wasUnread) {
+          setUnreadCount((c) => c + 1);
+        }
+        console.error('Failed to delete notification:', err);
+      }
+    } finally {
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -200,8 +227,10 @@ export const NotificationBell = ({ theme = 'dark' }: NotificationBellProps) => {
                           </h4>
                           {/* Close / Delete Icon - visible on hover */}
                           <button
-                            onClick={(e) => handleDeleteNotification(e, notif._id)}
-                            className={`p-1 rounded-lg shrink-0 transition-opacity opacity-0 group-hover:opacity-100 ${
+                            type="button"
+                            disabled={deletingIds.has(notif._id)}
+                            onClick={(e) => handleDeleteNotification(e, notif)}
+                            className={`p-1 rounded-lg shrink-0 transition-opacity opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed ${
                               isDark 
                                 ? 'hover:bg-white/10 text-white/30 hover:text-rose-400' 
                                 : 'hover:bg-slate-100 text-slate-400 hover:text-rose-500'

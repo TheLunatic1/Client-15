@@ -6,10 +6,13 @@ import {
   MapPin, Star, Phone, Mail, Globe, 
   CheckCircle2,
   Briefcase, Shield, Clock, Camera,
-  MessageSquare, UserCheck, HardHat,
+  UserCheck, HardHat,
   Loader2,
-  Save
+  Bookmark,
+  BookmarkCheck,
+  MessageSquare,
 } from "lucide-react";
+import Swal from 'sweetalert2';
 import { getBusinessById } from "../../api/businessApi";
 import { reviewApi, type Review } from "../../api/reviewApi";
 import { checkSavedStatus, saveBusiness, unsaveBusiness } from "../../api/userApi";
@@ -65,23 +68,59 @@ const BusinessProfile = () => {
 
   const handleSaveBusiness = async () => {
     if (!isLoggedIn) {
-      alert("Please log in to save businesses.");
+      Swal.fire({
+        title: 'Login required',
+        text: 'Please log in to save businesses to your list.',
+        icon: 'info',
+        confirmButtonColor: '#097DDD',
+        customClass: { popup: 'rounded-[2rem]' },
+      });
       return;
     }
     if (!pro || !pro._id) return;
-    
+
     setIsSaving(true);
     try {
       if (isSaved) {
         await unsaveBusiness(pro._id);
         setIsSaved(false);
+        Swal.fire({
+          title: 'Removed',
+          text: `"${pro.businessName}" has been removed from your saved businesses.`,
+          icon: 'success',
+          confirmButtonColor: '#097DDD',
+          timer: 2200,
+          showConfirmButton: true,
+          customClass: {
+            popup: 'rounded-[2rem]',
+            confirmButton: 'rounded-xl font-bold uppercase tracking-widest text-[10px] px-8 py-4',
+          },
+        });
       } else {
         await saveBusiness(pro._id);
         setIsSaved(true);
+        Swal.fire({
+          title: 'Saved!',
+          text: `"${pro.businessName}" is now in your saved businesses. View it anytime from your dashboard.`,
+          icon: 'success',
+          confirmButtonColor: '#097DDD',
+          timer: 2800,
+          showConfirmButton: true,
+          customClass: {
+            popup: 'rounded-[2rem]',
+            confirmButton: 'rounded-xl font-bold uppercase tracking-widest text-[10px] px-8 py-4',
+          },
+        });
       }
     } catch (err: any) {
       console.error('Error saving business:', err.response?.data || err);
-      alert(`Failed to update saved status: ${err.response?.data?.message || err.message}`);
+      Swal.fire({
+        title: 'Could not update',
+        text: err.response?.data?.message || err.message || 'Failed to update saved status.',
+        icon: 'error',
+        confirmButtonColor: '#097DDD',
+        customClass: { popup: 'rounded-[2rem]' },
+      });
     } finally {
       setIsSaving(false);
     }
@@ -559,17 +598,23 @@ const BusinessProfile = () => {
                 </div>
 
                 <button
+                  type="button"
                   disabled={isSaving}
-                  className={`w-full ${isSaved ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-[#0D1F43] hover:bg-black'} text-white font-black text-xs py-6 rounded-2xl transition-all shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98] mb-4 disabled:opacity-70`}
+                  className={`w-full text-white font-black text-xs py-6 rounded-2xl transition-all shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98] mb-4 disabled:opacity-70 ${
+                    isSaved
+                      ? 'bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-400/40'
+                      : 'bg-[#0D1F43] hover:bg-black'
+                  }`}
                   onClick={handleSaveBusiness}
                 >
-                  {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} className={isSaved ? "fill-white" : ""} />}
-                  {isSaving ? 'Saving...' : (isSaved ? 'Saved Business' : 'Save Business')}
-                </button>
-
-                <button className="w-full bg-primary hover:bg-primary/90 text-white font-black text-xs py-6 rounded-2xl transition-all shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-[0.98]">
-                  <MessageSquare size={18} />
-                  Request a Quote
+                  {isSaving ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : isSaved ? (
+                    <BookmarkCheck size={18} />
+                  ) : (
+                    <Bookmark size={18} />
+                  )}
+                  {isSaving ? 'Updating...' : isSaved ? 'Unsave Business' : 'Save Business'}
                 </button>
 
                 <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-center gap-6">

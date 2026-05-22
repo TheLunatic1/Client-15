@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, CheckCircle2, Star, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useGiveaway } from '../../context/GiveawayContext';
 
 // Import images from assets
 import tradie1 from '../../assets/section images/tradie-1.png';
@@ -14,6 +15,7 @@ const sliderImages = [tradie1, tradie2, tradie3, electrician];
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { showTicker } = useGiveaway();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [service, setService] = useState('');
   const [location, setLocation] = useState('');
@@ -86,7 +88,11 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative min-h-[65vh] bg-[#050f26] pt-[90px] pb-[100px] overflow-hidden flex items-center">
+    <section
+      className={`relative min-h-[65vh] bg-[#050f26] pb-[100px] overflow-hidden flex items-center ${
+        showTicker ? 'pt-8 md:pt-10' : 'pt-[90px]'
+      }`}
+    >
       {/* Background Animated Image (Low Opacity) */}
       <AnimatePresence mode="sync">
         <motion.img

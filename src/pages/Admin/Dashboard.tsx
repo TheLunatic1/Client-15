@@ -15,7 +15,7 @@ import { getAdminStats } from '../../api/statsApi';
 import axiosClient from '../../api/axios';
 import {
   LayoutDashboard, Users, Briefcase, Settings, LayoutGrid,
-  LogOut, Shield, MapPin, FileText, Clock,
+  LogOut, Shield, MapPin, FileText, Clock, Gift,
   Camera, Upload, X
 } from 'lucide-react';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
@@ -38,6 +38,7 @@ import SubmissionsSection from './sections/SubmissionsSection';
 import BlogSection from './sections/BlogSection';
 import CategorySection from './sections/CategorySection';
 import LocationSection from './sections/LocationSection';
+import GiveawaySection from './sections/GiveawaySection';
 import UsersSection from './sections/UsersSection';
 import UserProfileSection from './sections/user/UserProfileSection';
 import UserSecuritySection from './sections/user/UserSecuritySection';
@@ -668,6 +669,7 @@ const AdminDashboard = () => {
             { id: 'active', name: 'Business Listings', icon: Briefcase },
             { id: 'submissions', name: 'Pending Approvals', icon: Clock, badge: pendingSubmissions.length || 0 },
             { id: 'blogs', name: 'Blog Manager', icon: FileText },
+            { id: 'giveaway', name: 'Giveaway', icon: Gift },
             { id: 'categories', name: 'Categories', icon: LayoutGrid },
             { id: 'locations', name: 'Locations', icon: MapPin },
             { id: 'users', name: 'Users / Tradies', icon: Users },
@@ -787,6 +789,7 @@ const AdminDashboard = () => {
                 />
               )}
               {activeTab === 'blogs' && <BlogSection blogs={blogs} onAdd={() => handleOpenBlogModal(null)} onEdit={handleOpenBlogModal} onDelete={deleteBlog} />}
+              {activeTab === 'giveaway' && <GiveawaySection />}
               {activeTab === 'categories' && <CategorySection refreshKey={categoriesRefreshKey} onAdd={() => handleOpenCategoryModal()} onEdit={(cat) => handleOpenCategoryModal(cat)} onDelete={handleDeleteCategory} />}
               {activeTab === 'locations' && <LocationSection refreshKey={locationsRefreshKey} onAdd={() => handleOpenLocationModal()} onEdit={(loc) => handleOpenLocationModal(loc)} onDelete={handleDeleteLocation} />}
               {activeTab === 'users' && <UsersSection />}

@@ -30,6 +30,12 @@
     from { transform: translateY(20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
   }
+  @keyframes giveawayMarquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  --animate-giveaway-marquee: giveawayMarquee 40s linear infinite;
 }
 
 @layer base {

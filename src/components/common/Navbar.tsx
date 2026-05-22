@@ -142,16 +142,16 @@ const Navbar = () => {
 
   const isDashboard = location.pathname.startsWith('/user-dashboard');
 
-  useEffect(() => {
-    const hasSeenLocationModal = localStorage.getItem('hasSeenLocationModal');
-    if (!hasSeenLocationModal) {
-      const timer = setTimeout(() => {
-        setIsLocationOpen(true);
-        localStorage.setItem('hasSeenLocationModal', 'true');
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  // useEffect(() => {
+  //   const hasSeenLocationModal = localStorage.getItem('hasSeenLocationModal');
+  //   if (!hasSeenLocationModal) {
+  //     const timer = setTimeout(() => {
+  //       setIsLocationOpen(true);
+  //       localStorage.setItem('hasSeenLocationModal', 'true');
+  //     }, 2000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, []);
 
   return (
     <nav className={`absolute top-0 left-0 right-0 z-50 transition-all ${isDashboard ? 'bg-[#050f26] shadow-xl' : 'bg-transparent'}`}>
@@ -308,13 +308,9 @@ const Navbar = () => {
                             
                             <div className="h-px bg-white/5 my-2 mx-4" />
 
-                            <button 
-                              onClick={() => { setIsLocationOpen(true); setIsUserDropdownOpen(false); }}
-                              className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-white/5 transition-all group"
-                            >
-                              <MapPinIcon size={18} className="text-white/40 group-hover:text-[#097DDD]" />
-                              <span className="text-sm font-medium text-white/80 group-hover:text-white">Change Location</span>
-                            </button>
+                            {/* CHANGE LOCATION BUTTON - HIDDEN */}
+                            {/* <button onClick={() => { setIsLocationOpen(true); setIsUserDropdownOpen(false); }} className="w-full...">Change Location</button> */}
+                            
                             <button 
                               onClick={handleLogout}
                               className="w-full flex items-center space-x-3 px-6 py-4 rounded-2xl hover:bg-red-500/5 transition-all group"
