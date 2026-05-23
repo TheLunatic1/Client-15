@@ -28,7 +28,7 @@ export const ContactFormSection = () => {
     setError(null);
 
     const check = validateContactForm({ name, email, subject, message });
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       setError(check.message);
       return;

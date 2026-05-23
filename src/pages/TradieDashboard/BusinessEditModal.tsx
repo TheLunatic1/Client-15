@@ -109,7 +109,7 @@ export default function BusinessEditModal({
   const handleSave = async () => {
     if (!businessId) return;
     const check = validateBusinessEdit(form);
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }

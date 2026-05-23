@@ -20,7 +20,7 @@ const Login = () => {
     e.preventDefault();
 
     const check = validateLogin(email, password);
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }

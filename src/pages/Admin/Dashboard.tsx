@@ -265,7 +265,7 @@ const AdminDashboard = () => {
       image: blogForm.image,
       writer: blogForm.publisher,
     });
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }
@@ -347,7 +347,7 @@ const AdminDashboard = () => {
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     const check = validateCategoryForm(categoryForm);
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }
@@ -404,7 +404,7 @@ const AdminDashboard = () => {
   const handleSaveLocation = async (e: React.FormEvent) => {
     e.preventDefault();
     const check = validateLocationForm(locationForm);
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }
@@ -492,7 +492,7 @@ const AdminDashboard = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const check = validateLogin(email, password);
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }

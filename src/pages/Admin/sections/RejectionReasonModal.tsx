@@ -29,7 +29,7 @@ const RejectionReasonModal = ({
     e.preventDefault();
     const trimmed = reason.trim();
     const check = validateRejectionReason(trimmed);
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }

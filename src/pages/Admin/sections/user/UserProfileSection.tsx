@@ -84,7 +84,7 @@ const UserProfileSection = ({ userData, onUpdate }: UserProfileSectionProps) => 
       lastName: formData.lastName,
       phone: formData.phone,
     });
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }

@@ -21,7 +21,7 @@ const UserSecuritySection = () => {
       newPassword,
       confirmPassword,
     });
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }
