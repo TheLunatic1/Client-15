@@ -35,12 +35,12 @@ function AppContentInner() {
   return (
     <div className="min-h-screen flex flex-col bg-[#050f26] text-white">
       {!isExcluded && <Navbar />}
-      {showHomeTicker && (
-        <div className="mt-24 shrink-0 sticky top-24 z-[45]">
-          <GiveawayTicker items={config.tickerItems} />
-        </div>
-      )}
       <main className="flex-grow">
+        {showHomeTicker && (
+          <div className="pt-24 shrink-0">
+            <GiveawayTicker items={config.tickerItems} />
+          </div>
+        )}
         <AppRoutes />
       </main>
       {!isExcluded && <Footer />}
