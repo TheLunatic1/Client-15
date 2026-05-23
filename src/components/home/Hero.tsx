@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, CheckCircle2, Star, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getCategories } from '../../api/categoryApi';
+import { getLocations } from '../../api/locationApi';
 
 // Import images from assets
 import tradie1 from '../../assets/section images/tradie-1.png';
@@ -22,7 +24,7 @@ const Hero = () => {
   const serviceRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
 
-  const SERVICES = [
+  const [services, setServices] = useState<string[]>([
     "Handyman Services",
     "Lawn Mowing and Gardening",
     "Domestic Cleaning",
@@ -39,9 +41,9 @@ const Hero = () => {
     "Landscapers",
     "Photographers",
     "Fencing Contractors",
-  ];
+  ]);
 
-  const REGIONS = [
+  const [regions, setRegions] = useState<string[]>([
     "Hobart Region (TAS)",
     "Launceston Region (TAS)",
     "Devonport Region (TAS)",
@@ -55,7 +57,23 @@ const Hero = () => {
     "Tasmania Region (TAS)",
     "Queensland Region (QLD)",
     "more states coming soon",
-  ];
+  ]);
+
+  useEffect(() => {
+    getCategories()
+      .then((cats: any[]) => {
+        if (cats && cats.length > 0) setServices(cats.map((c) => c.name));
+      })
+      .catch(() => {});
+
+    getLocations()
+      .then((locs: any[]) => {
+        if (locs && locs.length > 0) {
+          setRegions(locs.map((l) => l.region ? `${l.city} (${l.region})` : l.city));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -218,7 +236,7 @@ const Hero = () => {
                           <span className="text-white font-bold text-xs">Select Service...</span>
                         </div>
                         <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
-                          {SERVICES.map((s) => (
+                          {services.map((s) => (
                             <div
                               key={s}
                               className="px-6 py-3 hover:bg-white/5 text-white/70 hover:text-white font-medium text-sm transition-colors cursor-pointer"
@@ -269,7 +287,7 @@ const Hero = () => {
                           <span className="text-white font-bold text-xs">Select Region...</span>
                         </div>
                         <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
-                          {REGIONS.map((r) => (
+                          {regions.map((r) => (
                             <div
                               key={r}
                               className="px-6 py-3 hover:bg-white/5 text-white/70 hover:text-white font-medium text-sm transition-colors cursor-pointer"
