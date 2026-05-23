@@ -694,15 +694,15 @@ const AdminDashboard = () => {
             <p className="px-6 text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-4">Management</p>
           )}
           {[
-            { id: 'overview', name: 'Overview', icon: LayoutDashboard },
-            { id: 'active', name: 'Business Listings', icon: Briefcase },
+            { id: 'overview', name: 'Overview', icon: LayoutDashboard, badge: 0 },
+            { id: 'active', name: 'Business Listings', icon: Briefcase, badge: 0 },
             { id: 'submissions', name: 'Pending Approvals', icon: Clock, badge: pendingSubmissions.length || 0 },
-            { id: 'blogs', name: 'Blog Manager', icon: FileText },
-            { id: 'giveaway', name: 'Giveaway', icon: Gift },
-            { id: 'categories', name: 'Categories', icon: LayoutGrid },
-            { id: 'locations', name: 'Locations', icon: MapPin },
-            { id: 'users', name: 'Users / Tradies', icon: Users },
-            { id: 'settings', name: 'Settings', icon: Settings },
+            { id: 'blogs', name: 'Blog Manager', icon: FileText, badge: 0 },
+            { id: 'giveaway', name: 'Giveaway', icon: Gift, badge: 0 },
+            { id: 'categories', name: 'Categories', icon: LayoutGrid, badge: 0 },
+            { id: 'locations', name: 'Locations', icon: MapPin, badge: 0 },
+            { id: 'users', name: 'Users / Tradies', icon: Users, badge: 0 },
+            { id: 'settings', name: 'Settings', icon: Settings, badge: 0 },
           ].map((item) => (
             <button
               key={item.id}
