@@ -162,7 +162,7 @@ export const NotificationBell = ({ theme = 'dark' }: NotificationBellProps) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 15, scale: 0.95 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className={`absolute right-0 mt-3 w-80 sm:w-96 rounded-[2rem] overflow-hidden shadow-2xl border z-[9999] ${
+            className={`fixed left-4 right-4 top-[85px] sm:absolute sm:left-auto sm:top-auto sm:right-0 sm:mt-3 w-auto sm:w-96 max-w-none rounded-[2rem] overflow-hidden shadow-2xl border z-[9999] ${
               isDark 
                 ? 'bg-[#0D1F43]/95 backdrop-blur-2xl border-white/10 text-white' 
                 : 'bg-white border-slate-200 text-slate-850'
