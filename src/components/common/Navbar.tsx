@@ -366,6 +366,49 @@ const Navbar = () => {
                   </Link>
                 );
               })}
+              
+              {isLoggedIn && (
+                <div className="pt-2 border-t border-white/10 mt-2">
+                  <button
+                    onClick={() => { goToDashboard(); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-white/70 hover:bg-white/5 hover:text-white uppercase tracking-wider flex items-center gap-3"
+                  >
+                    <LayoutDashboard size={18} className="text-[#097DDD]" />
+                    {isAdmin ? 'Admin Dashboard' : 'My Dashboard'}
+                  </button>
+                  <button
+                    onClick={() => { goToProfileSettings(); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-white/70 hover:bg-white/5 hover:text-white uppercase tracking-wider flex items-center gap-3"
+                  >
+                    <User size={18} className="text-[#097DDD]" />
+                    Profile & Photo
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => { navigate('/admin', { state: { activeTab: 'blogs' } }); setIsMobileMenuOpen(false); }}
+                      className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-white/70 hover:bg-white/5 hover:text-white uppercase tracking-wider flex items-center gap-3"
+                    >
+                      <FileText size={18} className="text-[#097DDD]" />
+                      Manage Blogs
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { goToSecuritySettings(); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-white/70 hover:bg-white/5 hover:text-white uppercase tracking-wider flex items-center gap-3"
+                  >
+                    <ShieldCheck size={18} className="text-[#097DDD]" />
+                    Security
+                  </button>
+                  <button
+                    onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
+                    className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 hover:text-red-300 uppercase tracking-wider flex items-center gap-3"
+                  >
+                    <LogOut size={18} />
+                    Logout
+                  </button>
+                </div>
+              )}
+
               {!isLoggedIn && (
                 <div className="pt-4 px-4">
                   <Link

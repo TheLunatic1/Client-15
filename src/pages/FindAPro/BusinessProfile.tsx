@@ -129,7 +129,7 @@ const BusinessProfile = () => {
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     const check = validateReview(newRating, newComment);
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }
@@ -267,12 +267,12 @@ const BusinessProfile = () => {
                       </span>
                     )}
                   </motion.div>
-                  <motion.h1 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-4xl md:text-6xl font-black text-white leading-tight mb-2"
-                  >
+                    <motion.h1 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight mb-2"
+                    >
                     {name}
                   </motion.h1>
                   <motion.div 
@@ -292,7 +292,7 @@ const BusinessProfile = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6 }}
-                className="flex gap-8 items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 px-10 shadow-2xl"
+                className="flex gap-6 items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 px-7 shadow-2xl self-start md:self-auto overflow-x-auto"
               >
                 <div className="text-center">
                   <p className="text-2xl font-black text-white">{reviews.length || 0}</p>
@@ -320,7 +320,7 @@ const BusinessProfile = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 pb-32">
         <div className="grid lg:grid-cols-12 gap-10">
           
-          {/* Left Column (8 cols) */}
+          {/* Left Column (8 cols) - shown first on mobile */}
           <div className="lg:col-span-8 space-y-10">
             
             {/* About Section */}
@@ -549,11 +549,10 @@ const BusinessProfile = () => {
 
           </div>
 
-          {/* Right Column (4 cols) */}
+          {/* Right Column (4 cols) - below content on mobile, sticky on desktop */}
           <div className="lg:col-span-4 space-y-8">
             
-            {/* Sticky Contact Box */}
-            <div className="sticky top-32 space-y-8">
+            <div className="lg:sticky lg:top-32 space-y-8">
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}

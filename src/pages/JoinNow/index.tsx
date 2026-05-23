@@ -47,7 +47,7 @@ const JoinNow = () => {
   const handleCustomerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const check = validateCustomerRegistration({ firstName, lastName, email, password });
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }
@@ -94,7 +94,7 @@ const JoinNow = () => {
       businessName: tradieBusinessName,
       agreeToTerms,
     });
-    if (!check.ok) {
+    if ('message' in check) {
       showValidationAlert(check.message);
       return;
     }
@@ -413,7 +413,7 @@ const JoinNow = () => {
                   ) : (
                     /* CUSTOMER FORM */
                     <form onSubmit={handleCustomerSubmit} className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-3">
                           <label className="text-[9px] font-black text-[#6ab4f5] uppercase tracking-[0.2em] ml-1">First Name</label>
                           <div className="relative">

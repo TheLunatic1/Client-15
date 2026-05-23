@@ -16,7 +16,7 @@ import axiosClient from '../../api/axios';
 import {
   LayoutDashboard, Users, Briefcase, Settings, LayoutGrid,
   LogOut, Shield, MapPin, FileText, Clock, Gift,
-  Camera, Upload, X
+  Camera, Upload, X, Menu, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import { NotificationBell } from '../../components/common/NotificationBell';
@@ -52,6 +52,8 @@ const AdminDashboard = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [settingsTab, setSettingsTab] = useState('profile');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -650,20 +652,47 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobileSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="fixed inset-0 bg-[#050f26]/80 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-[280px] bg-[#0D1F43] flex flex-col relative z-50">
-        <div className="p-8 mb-4">
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+      <aside
+        className={`bg-[#0D1F43] flex flex-col fixed inset-y-0 left-0 z-50 transform transition-all duration-300 lg:relative lg:translate-x-0 ${
+          isMobileSidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full lg:w-auto'
+        } ${isSidebarCollapsed && !isMobileSidebarOpen ? 'lg:w-[88px]' : 'lg:w-[280px]'}`}
+      >
+        <div className="p-8 mb-4 flex items-center justify-between">
+          <Link to="/" className={`flex items-center gap-3 hover:opacity-80 transition-opacity ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center w-full' : ''}`}>
             <img src={logo} className="h-8 w-auto brightness-200" alt="Logo" />
-            <div className="flex flex-col">
-              <span className="text-white text-[11px] font-black tracking-[0.2em] uppercase leading-none">MyLocalPro</span>
-              <span className="text-primary text-[10px] font-black tracking-[0.3em] uppercase">Super Admin</span>
-            </div>
+            {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+              <div className="flex flex-col">
+                <span className="text-white text-[11px] font-black tracking-[0.2em] uppercase leading-none">MyLocalPro</span>
+                <span className="text-primary text-[10px] font-black tracking-[0.3em] uppercase">Super Admin</span>
+              </div>
+            )}
           </Link>
+          <button
+            className="lg:hidden text-white/50 hover:text-white p-2 -mr-4"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        <nav className="flex-grow px-4 space-y-1">
-          <p className="px-6 text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-4">Management</p>
+        <nav className="flex-grow px-4 space-y-1 overflow-y-auto">
+          {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+            <p className="px-6 text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-4">Management</p>
+          )}
           {[
             { id: 'overview', name: 'Overview', icon: LayoutDashboard },
             { id: 'active', name: 'Business Listings', icon: Briefcase },
@@ -677,18 +706,27 @@ const AdminDashboard = () => {
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center justify-between px-6 py-3.5 rounded-2xl transition-all group relative ${activeTab === item.id
-                ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg shadow-primary/30'
-                : 'text-white/40 hover:bg-white/5 hover:text-white'
-                }`}
+              onClick={() => { setActiveTab(item.id); setIsMobileSidebarOpen(false); }}
+              title={isSidebarCollapsed && !isMobileSidebarOpen ? item.name : undefined}
+              className={`w-full flex items-center justify-between px-6 py-3.5 rounded-2xl transition-all group relative ${
+                activeTab === item.id
+                  ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg shadow-primary/30'
+                  : 'text-white/40 hover:bg-white/5 hover:text-white'
+              }`}
             >
-              <div className="flex items-center gap-4">
+              <div className={`flex items-center ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center w-full' : 'gap-4'}`}>
                 <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} />
-                <span className="text-[13px] font-bold tracking-tight">{item.name}</span>
+                {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                  <span className="text-[13px] font-bold tracking-tight whitespace-nowrap">{item.name}</span>
+                )}
               </div>
-              {item.badge && (
+              {item.badge > 0 && (!isSidebarCollapsed || isMobileSidebarOpen) && (
                 <span className={`text-[12px] font-black px-2 py-0.5 rounded-md ${activeTab === item.id ? 'bg-white/20' : 'bg-primary/20 text-primary'}`}>
+                  {item.badge}
+                </span>
+              )}
+              {item.badge > 0 && isSidebarCollapsed && !isMobileSidebarOpen && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-[#097DDD] rounded-full text-white text-[9px] font-black flex items-center justify-center">
                   {item.badge}
                 </span>
               )}
@@ -707,10 +745,13 @@ const AdminDashboard = () => {
               setIsLoggedIn(false);
               window.location.href = '/login';
             }}
-            className="w-full flex items-center gap-4 px-6 py-4 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all font-black uppercase tracking-widest text-[12px]"
+            title={isSidebarCollapsed && !isMobileSidebarOpen ? 'Logout' : undefined}
+            className={`w-full flex items-center ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center' : 'gap-4'} px-6 py-4 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all font-black uppercase tracking-widest text-[12px]`}
           >
-            <LogOut size={18} />
-            Logout System
+            <LogOut size={18} className={isSidebarCollapsed && !isMobileSidebarOpen ? 'mx-auto' : ''} />
+            {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+              <span className="whitespace-nowrap">Logout System</span>
+            )}
           </button>
         </div>
       </aside>
@@ -718,7 +759,22 @@ const AdminDashboard = () => {
       {/* Main Content Area */}
       <main className="flex-grow overflow-y-auto custom-scrollbar">
         {/* Top Header */}
-        <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
+        <header className="h-20 bg-white border-b border-slate-100 px-6 lg:px-12 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            <button
+              className="lg:hidden text-slate-400 hover:text-slate-800 transition-colors p-2"
+              onClick={() => setIsMobileSidebarOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <button
+              className="hidden lg:flex text-slate-400 hover:text-slate-800 transition-colors p-2 bg-slate-50 hover:bg-slate-100 rounded-lg"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title="Toggle Sidebar"
+            >
+              {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+          </div>
           <div className="flex items-center gap-6">
             <NotificationBell theme="light" />
             <DashboardProfileChip
@@ -737,7 +793,7 @@ const AdminDashboard = () => {
           </div>
         </header>
 
-        <div className="p-12">
+        <div className="p-6 sm:p-8 lg:p-12">
           {/* Dashboard Header */}
           <div className="mb-12">
             <p className="text-[12px] font-black text-primary uppercase tracking-[0.3em] mb-2">Access Granted</p>

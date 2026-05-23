@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, ShieldCheck, Briefcase, LogOut, CheckCircle, HardHat } from 'lucide-react';
+import { User, ShieldCheck, Briefcase, LogOut, CheckCircle, HardHat, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import logo from '../../assets/WhatsApp_Image_2026-05-14_at_11.37.20_AM__1_-removebg-preview.png';
 import UserProfileSection from '../Admin/sections/user/UserProfileSection';
 import UserSecuritySection from '../Admin/sections/user/UserSecuritySection';
@@ -40,6 +40,8 @@ const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isBecomeTradieOpen, setIsBecomeTradieOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState({
     name: 'Member',
@@ -166,33 +168,63 @@ const UserDashboard = () => {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobileSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="fixed inset-0 bg-[#050f26]/80 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-[280px] bg-[#0D1F43] flex flex-col relative z-50">
-        <div className="p-8 mb-4">
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+      <aside 
+        className={`bg-[#0D1F43] flex flex-col fixed inset-y-0 left-0 z-50 transform transition-all duration-300 lg:relative lg:translate-x-0 ${
+          isMobileSidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full lg:w-auto'
+        } ${isSidebarCollapsed && !isMobileSidebarOpen ? 'lg:w-[88px]' : 'lg:w-[280px]'}`}
+      >
+        <div className="p-8 mb-4 flex items-center justify-between">
+          <Link to="/" className={`flex items-center gap-3 hover:opacity-80 transition-opacity ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center w-full' : ''}`}>
             <img src={logo} className="h-8 w-auto brightness-200" alt="Logo" />
-            <div className="flex flex-col">
-              <span className="text-white text-[10px] font-black tracking-[0.2em] uppercase leading-none">MyLocalPro</span>
-              <span className="text-[#097DDD] text-[8px] font-black tracking-[0.3em] uppercase">User Command</span>
-            </div>
+            {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+              <div className="flex flex-col">
+                <span className="text-white text-[10px] font-black tracking-[0.2em] uppercase leading-none">MyLocalPro</span>
+                <span className="text-[#097DDD] text-[8px] font-black tracking-[0.3em] uppercase">User Command</span>
+              </div>
+            )}
           </Link>
+          <button 
+            className="lg:hidden text-white/50 hover:text-white p-2 -mr-4"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <nav className="flex-grow px-4 space-y-1">
-          <p className="px-6 text-[8px] font-black text-white/20 uppercase tracking-[0.3em] mb-4">Account Overview</p>
+          {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+            <p className="px-6 text-[8px] font-black text-white/20 uppercase tracking-[0.3em] mb-4">Account Overview</p>
+          )}
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-4 px-6 py-3.5 rounded-2xl transition-all group relative ${isActive
+                onClick={() => { setActiveTab(tab.id); setIsMobileSidebarOpen(false); }}
+                title={isSidebarCollapsed && !isMobileSidebarOpen ? tab.name : undefined}
+                className={`w-full flex items-center ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center' : 'gap-4'} px-6 py-3.5 rounded-2xl transition-all group relative ${isActive
                   ? 'bg-gradient-to-r from-[#097DDD] to-blue-600 text-white shadow-lg shadow-[#097DDD]/30'
                   : 'text-white/40 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <tab.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="text-[13px] font-bold tracking-tight">{tab.name}</span>
+                <tab.icon size={20} strokeWidth={isActive ? 2.5 : 2} className={isSidebarCollapsed && !isMobileSidebarOpen ? 'mx-auto' : ''} />
+                {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                  <span className="text-[13px] font-bold tracking-tight whitespace-nowrap">{tab.name}</span>
+                )}
               </button>
             );
           })}
@@ -200,30 +232,51 @@ const UserDashboard = () => {
           {/* Become a Tradie */}
           <div className="pt-4 mt-4 border-t border-white/5">
             <button
-              onClick={() => setIsBecomeTradieOpen(true)}
-              className="w-full flex items-center gap-4 px-6 py-3.5 text-[#097DDD]/70 hover:bg-[#097DDD]/10 hover:text-[#097DDD] rounded-2xl transition-all group"
+              onClick={() => { setIsBecomeTradieOpen(true); setIsMobileSidebarOpen(false); }}
+              title={isSidebarCollapsed && !isMobileSidebarOpen ? 'Become a Tradie' : undefined}
+              className={`w-full flex items-center ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center' : 'gap-4'} px-6 py-3.5 text-[#097DDD]/70 hover:bg-[#097DDD]/10 hover:text-[#097DDD] rounded-2xl transition-all group`}
             >
-              <HardHat size={20} strokeWidth={2} />
-              <span className="text-[13px] font-bold tracking-tight">Become a Tradie</span>
+              <HardHat size={20} strokeWidth={2} className={isSidebarCollapsed && !isMobileSidebarOpen ? 'mx-auto' : ''} />
+              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                <span className="text-[13px] font-bold tracking-tight whitespace-nowrap">Become a Tradie</span>
+              )}
             </button>
           </div>
         </nav>
 
-        <div className="p-8 border-t border-white/5 mt-auto">
+        <div className="p-8 border-t border-white/5 mt-auto flex flex-col gap-4">
           <button
             onClick={() => setIsLogoutModalOpen(true)}
-            className="w-full flex items-center gap-4 px-6 py-4 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]"
+            title={isSidebarCollapsed && !isMobileSidebarOpen ? 'Logout' : undefined}
+            className={`w-full flex items-center ${isSidebarCollapsed && !isMobileSidebarOpen ? 'justify-center' : 'gap-4'} px-6 py-4 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]`}
           >
-            <LogOut size={18} />
-            Logout Session
+            <LogOut size={18} className={isSidebarCollapsed && !isMobileSidebarOpen ? 'mx-auto' : ''} />
+            {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+              <span className="whitespace-nowrap">Logout Session</span>
+            )}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-grow overflow-y-auto custom-scrollbar">
-        {/* Header — no search bar */}
-        <header className="h-20 bg-white border-b border-slate-100 px-12 flex items-center justify-end sticky top-0 z-40">
+      <main className="flex-grow overflow-y-auto custom-scrollbar relative">
+        {/* Header */}
+        <header className="h-20 bg-white border-b border-slate-100 px-6 lg:px-12 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            <button 
+              className="lg:hidden text-slate-400 hover:text-slate-800 transition-colors p-2"
+              onClick={() => setIsMobileSidebarOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <button 
+              className="hidden lg:flex text-slate-400 hover:text-slate-800 transition-colors p-2 bg-slate-50 hover:bg-slate-100 rounded-lg"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title="Toggle Sidebar"
+            >
+              {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+          </div>
           <div className="flex items-center gap-6">
             <NotificationBell theme="light" />
             <DashboardProfileChip
@@ -236,7 +289,7 @@ const UserDashboard = () => {
           </div>
         </header>
 
-        <div className="p-12 lg:p-14 max-w-7xl mx-auto">
+        <div className="p-6 sm:p-8 lg:p-14 max-w-7xl mx-auto">
           <div className="mb-12">
             <p className="text-[10px] font-black text-[#097DDD] uppercase tracking-[0.3em] mb-2">Session Active</p>
             <h1 className="text-3xl font-black text-[#0D1F43] tracking-tight mb-2">Member Control Center</h1>
