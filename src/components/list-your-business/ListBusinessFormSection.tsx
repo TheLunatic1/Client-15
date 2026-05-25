@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, ArrowRight, Upload, Star, Loader2, X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -8,7 +10,9 @@ import { getLocations } from "../../api/locationApi";
 import { uploadImage } from "../../api/uploadApi";
 import { validateListBusinessForm, showValidationAlert } from "../../utils/validation";
 
-const MAX_IMAGES = 6;
+const MAX_PROFILE_IMAGES = 1;
+const MAX_GALLERY_IMAGES = 6;
+const MAX_TOTAL_IMAGES = MAX_PROFILE_IMAGES + MAX_GALLERY_IMAGES; // 7 total
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 
 type UploadedImage = {
@@ -16,6 +20,7 @@ type UploadedImage = {
   preview: string;
   url: string;
   uploading?: boolean;
+  isProfile?: boolean;
 };
 
 const benefits = [
@@ -44,7 +49,8 @@ const FALLBACK_LOCATIONS = [
 
 export const ListBusinessFormSection = () => {
   const formRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const profileFileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
   const [sent, setSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -93,7 +99,7 @@ export const ListBusinessFormSection = () => {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
@@ -109,18 +115,86 @@ export const ListBusinessFormSection = () => {
       return;
     }
 
-    const slotsLeft = MAX_IMAGES - images.filter((i) => i.url || i.uploading).length;
-    if (slotsLeft <= 0) {
+    if (files.length > 1) {
       Swal.fire({
-        title: "Limit Reached",
-        text: `You can upload up to ${MAX_IMAGES} images.`,
+        title: "One Image Only",
+        text: "Please select only one profile picture.",
         icon: "info",
         confirmButtonColor: "#097DDD",
       });
       return;
     }
 
-    const filesToUpload = files.slice(0, slotsLeft);
+    setIsUploadingImages(true);
+
+    const file = files[0];
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      Swal.fire({
+        title: "Invalid File",
+        text: "Only JPG and PNG images are allowed.",
+        icon: "warning",
+        confirmButtonColor: "#097DDD",
+      });
+      setIsUploadingImages(false);
+      return;
+    }
+
+    // Remove existing profile image if any
+    setImages((prev) => prev.filter((img) => !img.isProfile));
+
+    const id = `profile-${Date.now()}`;
+    const preview = URL.createObjectURL(file);
+    setImages((prev) => [...prev, { id, preview, url: "", uploading: true, isProfile: true }]);
+
+    try {
+      const url = await uploadImage(file);
+      setImages((prev) =>
+        prev.map((img) => (img.id === id ? { ...img, url, uploading: false } : img))
+      );
+    } catch {
+      setImages((prev) => prev.filter((img) => img.id !== id));
+      URL.revokeObjectURL(preview);
+      Swal.fire({
+        title: "Upload Failed",
+        text: "Could not upload image. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#097DDD",
+      });
+    }
+
+    setIsUploadingImages(false);
+  };
+
+  const handleGalleryImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+
+    const token = localStorage.getItem("token");
+    if (!token || token === "dummy-tradie-token") {
+      Swal.fire({
+        title: "Not Logged In",
+        text: "Please log in as a tradie before uploading images.",
+        icon: "warning",
+        confirmButtonColor: "#097DDD",
+      });
+      return;
+    }
+
+    const galleryImages = images.filter((i) => !i.isProfile);
+    const gallerySlotsLeft = MAX_GALLERY_IMAGES - galleryImages.filter((i) => i.url || i.uploading).length;
+
+    if (gallerySlotsLeft <= 0) {
+      Swal.fire({
+        title: "Gallery Limit Reached",
+        text: `You can upload up to ${MAX_GALLERY_IMAGES} previous works images.`,
+        icon: "info",
+        confirmButtonColor: "#097DDD",
+      });
+      return;
+    }
+
+    const filesToUpload = files.slice(0, gallerySlotsLeft);
     setIsUploadingImages(true);
 
     for (const file of filesToUpload) {
@@ -136,7 +210,7 @@ export const ListBusinessFormSection = () => {
 
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const preview = URL.createObjectURL(file);
-      setImages((prev) => [...prev, { id, preview, url: "", uploading: true }]);
+      setImages((prev) => [...prev, { id, preview, url: "", uploading: true, isProfile: false }]);
 
       try {
         const url = await uploadImage(file);
@@ -198,6 +272,18 @@ export const ListBusinessFormSection = () => {
       return;
     }
 
+    const profileImage = images.find((img) => img.isProfile && img.url);
+    if (!profileImage) {
+      Swal.fire({
+        title: 'Profile Picture Required',
+        text: 'Please upload at least one profile picture.',
+        icon: 'warning',
+        confirmButtonColor: '#097DDD',
+      });
+      scrollToFormTop();
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (!token || token === 'dummy-tradie-token') {
       Swal.fire({
@@ -211,8 +297,11 @@ export const ListBusinessFormSection = () => {
 
     setIsSubmitting(true);
     try {
-      const uploadedUrls = images.filter((img) => img.url).map((img) => img.url);
-      const primaryImage = uploadedUrls[0];
+      const uploadedImages = images.filter((img) => img.url);
+      const profileImage = uploadedImages.find((img) => img.isProfile);
+      const galleryImages = uploadedImages.filter((img) => !img.isProfile);
+
+      const profileImageUrl = profileImage?.url || "";
 
       const business = await createBusiness({
         businessName: businessName.trim(),
@@ -226,14 +315,14 @@ export const ListBusinessFormSection = () => {
         yearsInBusiness,
         contactPhone: contactPhone.trim(),
         contactEmail: contactEmail.trim(),
-        logo: primaryImage,
-        coverImage: primaryImage,
+        logo: profileImageUrl,
+        coverImage: profileImageUrl,
       });
 
       const businessId = business._id || business.id;
-      if (businessId && uploadedUrls.length > 0) {
+      if (businessId && galleryImages.length > 0) {
         await Promise.all(
-          uploadedUrls.map((url) => addGalleryImage(businessId, { url }))
+          galleryImages.map((img) => addGalleryImage(businessId, { url: img.url }))
         );
       }
 
@@ -449,65 +538,131 @@ export const ListBusinessFormSection = () => {
                   </div>
                 </div>
 
-                {/* Photos Upload */}
+                {/* Profile Picture Upload */}
                 <div>
-                  <label className={labelCls}>Photos of your work</label>
+                  <label className={labelCls}>Profile Picture *</label>
                   <input
-                    ref={fileInputRef}
+                    ref={profileFileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className="hidden"
+                    onChange={handleProfileImageSelect}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => profileFileInputRef.current?.click()}
+                    disabled={isUploadingImages || images.some((i) => i.isProfile)}
+                    className="mt-2 w-full border-2 border-dashed border-[#cdd6e3] rounded-[14px] p-8 flex flex-col items-center justify-center bg-[#E4EAF1]/20 hover:bg-[#E4EAF1]/30 transition-colors cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[#097DDD]/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      {isUploadingImages ? (
+                        <Loader2 size={20} className="text-[#097DDD] animate-spin" />
+                      ) : (
+                        <Upload size={20} className="text-[#097DDD]" />
+                      )}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-[#097DDD] mb-1">
+                      Click to upload
+                    </div>
+                    <div className="text-[9px] font-bold text-[#7a90a8]">
+                      1 image (JPG or PNG)
+                    </div>
+                  </button>
+
+                  {images.some((img) => img.isProfile) && (
+                    <div className="mt-4 flex justify-center">
+                      {images
+                        .filter((img) => img.isProfile)
+                        .map((img) => (
+                          <div
+                            key={img.id}
+                            className="relative w-40 h-40 rounded-xl overflow-hidden border border-[#dde4ef] bg-slate-100"
+                          >
+                            <img
+                              src={img.url || img.preview}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                            {img.uploading && (
+                              <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                                <Loader2 size={24} className="text-[#097DDD] animate-spin" />
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeImage(img.id)}
+                              className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-rose-500 hover:bg-rose-50 shadow-sm"
+                              aria-label="Remove image"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Previous Works Gallery Upload */}
+                <div>
+                  <label className={labelCls}>Previous Works (Up to {MAX_GALLERY_IMAGES} Images)</label>
+                  <input
+                    ref={galleryFileInputRef}
                     type="file"
                     accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                     multiple
                     className="hidden"
-                    onChange={handleImageSelect}
+                    onChange={handleGalleryImageSelect}
                   />
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingImages || images.length >= MAX_IMAGES}
-                    className="mt-2 w-full border-2 border-dashed border-[#cdd6e3] rounded-[14px] p-10 flex flex-col items-center justify-center bg-[#E4EAF1]/20 hover:bg-[#E4EAF1]/30 transition-colors cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => galleryFileInputRef.current?.click()}
+                    disabled={isUploadingImages || images.filter((i) => !i.isProfile).length >= MAX_GALLERY_IMAGES}
+                    className="mt-2 w-full border-2 border-dashed border-[#cdd6e3] rounded-[14px] p-8 flex flex-col items-center justify-center bg-[#E4EAF1]/20 hover:bg-[#E4EAF1]/30 transition-colors cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <div className="w-12 h-12 rounded-full bg-[#097DDD]/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <div className="w-10 h-10 rounded-full bg-[#097DDD]/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                       {isUploadingImages ? (
-                        <Loader2 size={24} className="text-[#097DDD] animate-spin" />
+                        <Loader2 size={20} className="text-[#097DDD] animate-spin" />
                       ) : (
-                        <Upload size={24} className="text-[#097DDD]" />
+                        <Upload size={20} className="text-[#097DDD]" />
                       )}
                     </div>
-                    <div className="text-[11px] font-black uppercase tracking-wider text-[#097DDD] mb-1">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-[#097DDD] mb-1">
                       Click to upload
                     </div>
-                    <div className="text-[10px] font-bold text-[#7a90a8]">
-                      Up to {MAX_IMAGES} images, JPG or PNG ({images.length}/{MAX_IMAGES})
+                    <div className="text-[9px] font-bold text-[#7a90a8]">
+                      Multiple images ({images.filter((i) => !i.isProfile).length}/{MAX_GALLERY_IMAGES})
                     </div>
                   </button>
 
-                  {images.length > 0 && (
+                  {images.filter((i) => !i.isProfile).length > 0 && (
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {images.map((img) => (
-                        <div
-                          key={img.id}
-                          className="relative aspect-square rounded-xl overflow-hidden border border-[#dde4ef] bg-slate-100"
-                        >
-                          <img
-                            src={img.url || img.preview}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                          {img.uploading && (
-                            <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                              <Loader2 size={22} className="text-[#097DDD] animate-spin" />
-                            </div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeImage(img.id)}
-                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-rose-500 hover:bg-rose-50 shadow-sm"
-                            aria-label="Remove image"
+                      {images
+                        .filter((img) => !img.isProfile)
+                        .map((img) => (
+                          <div
+                            key={img.id}
+                            className="relative aspect-square rounded-xl overflow-hidden border border-[#dde4ef] bg-slate-100"
                           >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
+                            <img
+                              src={img.url || img.preview}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                            {img.uploading && (
+                              <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                                <Loader2 size={22} className="text-[#097DDD] animate-spin" />
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeImage(img.id)}
+                              className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-rose-500 hover:bg-rose-50 shadow-sm"
+                              aria-label="Remove image"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
                     </div>
                   )}
                 </div>

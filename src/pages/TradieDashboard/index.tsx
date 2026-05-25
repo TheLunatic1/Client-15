@@ -134,6 +134,8 @@ const TradieDashboard = () => {
   const [editBusinessName, setEditBusinessName] = useState('');
   const [editBusinessStatus, setEditBusinessStatus] = useState('');
   const [editFormData, setEditFormData] = useState<BusinessEditForm | null>(null);
+  const [editBusinessLogo, setEditBusinessLogo] = useState('');
+  const [editBusinessGallery, setEditBusinessGallery] = useState<any[]>([]);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -183,6 +185,8 @@ const TradieDashboard = () => {
     setEditBusinessName(biz.businessName);
     setEditBusinessStatus(formatBusinessStatus(biz.status));
     setEditFormData(businessToEditForm(biz));
+    setEditBusinessLogo(biz.logo || '');
+    setEditBusinessGallery(biz.gallery || []);
     setIsEditModalOpen(true);
   };
 
@@ -190,6 +194,8 @@ const TradieDashboard = () => {
     setIsEditModalOpen(false);
     setEditBusinessId(null);
     setEditFormData(null);
+    setEditBusinessLogo('');
+    setEditBusinessGallery([]);
   };
 
   useEffect(() => {
@@ -784,6 +790,8 @@ const TradieDashboard = () => {
         businessName={editBusinessName}
         status={editBusinessStatus}
         initialData={editFormData}
+        logo={editBusinessLogo}
+        gallery={editBusinessGallery}
         onClose={closeEditModal}
         onSaved={refreshListings}
       />
