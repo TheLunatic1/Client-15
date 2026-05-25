@@ -12,7 +12,6 @@ import { validateListBusinessForm, showValidationAlert } from "../../utils/valid
 
 const MAX_PROFILE_IMAGES = 1;
 const MAX_GALLERY_IMAGES = 6;
-const MAX_TOTAL_IMAGES = MAX_PROFILE_IMAGES + MAX_GALLERY_IMAGES; // 7 total
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 
 type UploadedImage = {
@@ -115,7 +114,7 @@ export const ListBusinessFormSection = () => {
       return;
     }
 
-    if (files.length > 1) {
+    if (files.length > MAX_PROFILE_IMAGES) {
       Swal.fire({
         title: "One Image Only",
         text: "Please select only one profile picture.",

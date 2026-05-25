@@ -114,6 +114,7 @@ export default function BusinessEditModal({
   const [saving, setSaving] = useState(false);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [newGalleryImages, setNewGalleryImages] = useState<NewUploadedImage[]>([]);
+  const [logoUrl, setLogoUrl] = useState(logo || '');
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const profileFileInputRef = useRef<HTMLInputElement>(null);
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
@@ -127,8 +128,9 @@ export default function BusinessEditModal({
       setForm(initialData);
       setGalleryImages(gallery);
       setNewGalleryImages([]);
+      setLogoUrl(logo || '');
     }
-  }, [isOpen, initialData, gallery]);
+  }, [isOpen, initialData, gallery, logo]);
 
   const setField = (field: keyof BusinessEditForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -165,8 +167,7 @@ export default function BusinessEditModal({
 
     try {
       const url = await uploadImage(file);
-      // Update logo in parent state somehow - for now we'll just show success
-      // This would need to be updated on save
+      setLogoUrl(url);
       Swal.fire({
         title: "Profile Picture Updated",
         text: "Your new profile picture will be applied when you save changes.",
@@ -316,6 +317,7 @@ export default function BusinessEditModal({
         longDescription: form.longDescription.trim(),
         contactPhone: form.contactPhone.trim(),
         contactEmail: form.contactEmail.trim(),
+        logo: logoUrl,
       };
 
       const updated = await updateBusiness(businessId, payload);
@@ -435,9 +437,9 @@ export default function BusinessEditModal({
                   
                   <div className="flex items-center gap-6">
                     <div>
-                      {logo ? (
+                      {logoUrl ? (
                         <div className="w-32 h-32 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
-                          <img src={logo} alt="Profile" className="w-full h-full object-cover" />
+                          <img src={logoUrl} alt="Profile" className="w-full h-full object-cover" />
                         </div>
                       ) : (
                         <div className="w-32 h-32 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
