@@ -140,7 +140,7 @@ const UserDashboard = () => {
 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {savedStats.savedBusinessesPreview.map((biz) => {
+        {savedStats.savedBusinessesPreview.map((biz: any) => {
           const isOpen = (() => {
             if (!biz.openingHours) return null;
             const now = new Date();

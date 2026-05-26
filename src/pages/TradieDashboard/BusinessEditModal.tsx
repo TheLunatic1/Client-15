@@ -729,7 +729,7 @@ export default function BusinessEditModal({
                               ...form,
                               openingHours: {
                                 ...form.openingHours,
-                                [day]: { ...form.openingHours?.[day], open: e.target.value, closed: form.openingHours?.[day]?.closed || false }
+                                [day]: { open: e.target.value, close: form.openingHours?.[day]?.close || '17:00', closed: form.openingHours?.[day]?.closed || false }
                               }
                             })}
                           />
@@ -742,7 +742,7 @@ export default function BusinessEditModal({
                               ...form,
                               openingHours: {
                                 ...form.openingHours,
-                                [day]: { ...form.openingHours?.[day], close: e.target.value, closed: form.openingHours?.[day]?.closed || false }
+                                [day]: { open: form.openingHours?.[day]?.open || '09:00', close: e.target.value, closed: form.openingHours?.[day]?.closed || false }
                               }
                             })}
                           />
@@ -755,7 +755,7 @@ export default function BusinessEditModal({
                               ...form,
                               openingHours: {
                                 ...form.openingHours,
-                                [day]: { ...form.openingHours?.[day], closed: e.target.checked }
+                                [day]: { open: form.openingHours?.[day]?.open || '09:00', close: form.openingHours?.[day]?.close || '17:00', closed: e.target.checked }
                               }
                             })}
                             className="w-4 h-4 rounded cursor-pointer"
