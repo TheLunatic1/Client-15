@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Briefcase, Phone, FileText, Save, X, AlertCircle, Loader2, Upload,
+  Briefcase, Phone, FileText, Save, X, AlertCircle, Loader2, Upload, Clock,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { updateBusiness, removeGalleryImage, addGalleryImage } from '../../api/businessApi';
@@ -23,6 +23,13 @@ export type BusinessEditForm = {
   longDescription: string;
   contactPhone: string;
   contactEmail: string;
+  openingHours?: {
+    [key: string]: {
+      open: string;
+      close: string;
+      closed: boolean;
+    };
+  };
 };
 
 type GalleryImage = {
@@ -51,6 +58,15 @@ const emptyForm: BusinessEditForm = {
   longDescription: '',
   contactPhone: '',
   contactEmail: '',
+  openingHours: {
+    monday: { open: '09:00', close: '17:00', closed: false },
+    tuesday: { open: '09:00', close: '17:00', closed: false },
+    wednesday: { open: '09:00', close: '17:00', closed: false },
+    thursday: { open: '09:00', close: '17:00', closed: false },
+    friday: { open: '09:00', close: '17:00', closed: false },
+    saturday: { open: '09:00', close: '14:00', closed: false },
+    sunday: { open: '09:00', close: '17:00', closed: true },
+  },
 };
 
 const LOCATIONS = [
@@ -361,7 +377,7 @@ export default function BusinessEditModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -373,16 +389,16 @@ export default function BusinessEditModal({
             initial={{ opacity: 0, scale: 0.96, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 16 }}
-            className="relative z-10 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col bg-white rounded-[2rem] border border-slate-200 shadow-2xl"
+            className="relative z-10 w-full max-w-3xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col bg-white rounded-t-[2rem] sm:rounded-[2rem] border border-slate-200 shadow-2xl"
           >
-            <div className="flex items-start justify-between gap-4 px-8 pt-8 pb-4 border-b border-slate-100 shrink-0">
-              <div>
+            <div className="flex items-start justify-between gap-3 px-4 sm:px-8 pt-4 sm:pt-8 pb-3 sm:pb-4 border-b border-slate-100 shrink-0">
+              <div className="min-w-0">
                 <p className="text-[10px] font-black text-[#097DDD] uppercase tracking-[0.25em] mb-1">
                   Edit listing
                 </p>
-                <h2 className="text-xl font-black text-slate-900">{businessName}</h2>
+                <h2 className="text-lg sm:text-xl font-black text-slate-900 truncate">{businessName}</h2>
                 <span
-                  className={`inline-block mt-2 text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-lg ${
+                  className={`inline-block mt-2 text-[8px] sm:text-[9px] font-black uppercase tracking-wider px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg ${
                     status.toLowerCase() === 'approved'
                       ? 'bg-emerald-100 text-emerald-600'
                       : status.toLowerCase() === 'rejected'
@@ -398,20 +414,20 @@ export default function BusinessEditModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
                 aria-label="Close"
               >
-                <X size={22} />
+                <X size={20} className="sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <div className="overflow-y-auto px-8 py-6 space-y-8 custom-scrollbar">
+            <div className="overflow-y-auto px-4 sm:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8 custom-scrollbar">
               {isRejected && (
-                <div className="flex gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-200">
-                  <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={20} />
-                  <div>
-                    <p className="font-black text-rose-900 text-sm">Listing rejected</p>
-                    <p className="text-rose-700/80 text-xs mt-1 leading-relaxed">
+                <div className="flex gap-2 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-rose-50 border border-rose-200">
+                  <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />
+                  <div className="min-w-0">
+                    <p className="font-black text-rose-900 text-xs sm:text-sm">Listing rejected</p>
+                    <p className="text-rose-700/80 text-[11px] sm:text-xs mt-1 leading-relaxed">
                       Update your details below and save to resubmit for admin approval. Check your
                       notifications for the rejection reason.
                     </p>
@@ -420,9 +436,9 @@ export default function BusinessEditModal({
               )}
 
               {isPendingDelete && (
-                <div className="flex gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200">
-                  <AlertCircle className="text-amber-600 shrink-0" size={20} />
-                  <p className="text-amber-900 text-xs font-medium">
+                <div className="flex gap-2 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-amber-50 border border-amber-200">
+                  <AlertCircle className="text-amber-600 shrink-0" size={18} />
+                  <p className="text-amber-900 text-[11px] sm:text-xs font-medium">
                     This listing is pending deletion approval. Editing is disabled.
                   </p>
                 </div>
@@ -431,19 +447,17 @@ export default function BusinessEditModal({
               {/* Profile Picture Section */}
               {!isPendingDelete && (
                 <section>
-                  <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
-                    <Upload className="text-[#097DDD]" size={18} /> Profile Picture
+                  <h3 className="text-xs sm:text-sm font-black text-slate-800 mb-3 sm:mb-4 flex items-center gap-2">
+                    <Upload className="text-[#097DDD]" size={16} /> Profile Picture
                   </h3>
                   
-                  <div className="flex items-center gap-6">
-                    <div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg sm:rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
                       {logoUrl ? (
-                        <div className="w-32 h-32 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
-                          <img src={logoUrl} alt="Profile" className="w-full h-full object-cover" />
-                        </div>
+                        <img src={logoUrl} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-32 h-32 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
-                          <p className="text-xs text-slate-500 text-center px-2">No profile picture</p>
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs text-center p-2">
+                          No profile picture
                         </div>
                       )}
                     </div>
@@ -459,19 +473,19 @@ export default function BusinessEditModal({
                       type="button"
                       onClick={() => profileFileInputRef.current?.click()}
                       disabled={saving || isUploadingGallery}
-                      className="h-32 px-6 py-4 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
+                      className="w-24 h-24 sm:w-32 sm:h-32 px-4 py-3 sm:py-4 border-2 border-dashed border-slate-300 rounded-lg sm:rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center shrink-0 text-center"
                     >
-                      <div className="w-8 h-8 rounded-full bg-[#097DDD]/10 flex items-center justify-center mb-2">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#097DDD]/10 flex items-center justify-center mb-1 sm:mb-2">
                         {isUploadingGallery ? (
-                          <Loader2 size={16} className="text-[#097DDD] animate-spin" />
+                          <Loader2 size={14} className="text-[#097DDD] animate-spin" />
                         ) : (
-                          <Upload size={16} className="text-[#097DDD]" />
+                          <Upload size={14} className="text-[#097DDD]" />
                         )}
                       </div>
-                      <div className="text-xs font-black text-[#097DDD] uppercase tracking-wider text-center">
+                      <div className="text-[9px] sm:text-xs font-black text-[#097DDD] uppercase tracking-wider">
                         Change
                       </div>
-                      <div className="text-xs text-slate-500 mt-1">Profile Pic</div>
+                      <div className="text-[8px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">Profile Pic</div>
                     </button>
                   </div>
                 </section>
@@ -480,15 +494,15 @@ export default function BusinessEditModal({
               {/* Previous Works Section */}
               {!isPendingDelete && (
                 <section>
-                  <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
-                    <Upload className="text-[#097DDD]" size={18} /> Previous Works ({galleryImages.length + newGalleryImages.length}/{maxGallerySlots})
+                  <h3 className="text-xs sm:text-sm font-black text-slate-800 mb-3 sm:mb-4 flex items-center gap-2">
+                    <Upload className="text-[#097DDD]" size={16} /> Previous Works ({galleryImages.length + newGalleryImages.length}/{maxGallerySlots})
                   </h3>
 
                   {/* Existing Gallery Images */}
                   {galleryImages.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-xs font-black text-slate-600 uppercase tracking-wider mb-3">Current Images</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="mb-3 sm:mb-4">
+                      <p className="text-[10px] sm:text-xs font-black text-slate-600 uppercase tracking-wider mb-2 sm:mb-3">Current Images</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {galleryImages.map((img) => (
                           <div
                             key={img._id}
@@ -512,9 +526,9 @@ export default function BusinessEditModal({
 
                   {/* New Gallery Images */}
                   {newGalleryImages.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-xs font-black text-slate-600 uppercase tracking-wider mb-3">Pending Upload</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="mb-3 sm:mb-4">
+                      <p className="text-[10px] sm:text-xs font-black text-slate-600 uppercase tracking-wider mb-2 sm:mb-3">Pending Upload</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {newGalleryImages.map((img) => (
                           <div
                             key={img.id}
@@ -523,7 +537,7 @@ export default function BusinessEditModal({
                             <img src={img.url || img.preview} alt="" className="w-full h-full object-cover" />
                             {img.uploading && (
                               <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                                <Loader2 size={18} className="text-[#097DDD] animate-spin" />
+                                <Loader2 size={16} className="text-[#097DDD] animate-spin" />
                               </div>
                             )}
                             <button
@@ -555,30 +569,30 @@ export default function BusinessEditModal({
                       type="button"
                       onClick={() => galleryFileInputRef.current?.click()}
                       disabled={saving || isUploadingGallery}
-                      className="w-full border-2 border-dashed border-slate-300 rounded-lg p-5 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full border-2 border-dashed border-slate-300 rounded-lg p-3 sm:p-5 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <div className="w-8 h-8 rounded-full bg-[#097DDD]/10 flex items-center justify-center mb-2">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#097DDD]/10 flex items-center justify-center mb-1 sm:mb-2">
                         {isUploadingGallery ? (
-                          <Loader2 size={16} className="text-[#097DDD] animate-spin" />
+                          <Loader2 size={14} className="text-[#097DDD] animate-spin" />
                         ) : (
-                          <Upload size={16} className="text-[#097DDD]" />
+                          <Upload size={14} className="text-[#097DDD]" />
                         )}
                       </div>
-                      <div className="text-xs font-black text-[#097DDD] uppercase tracking-wider">
+                      <div className="text-xs sm:text-sm font-black text-[#097DDD] uppercase tracking-wider">
                         Add More Images
                       </div>
-                      <div className="text-xs text-slate-500 mt-1">JPG or PNG</div>
+                      <div className="text-[10px] sm:text-xs text-slate-500 mt-1">JPG or PNG</div>
                     </button>
                   )}
                 </section>
               )}
 
               <section>
-                <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
-                  <Briefcase className="text-[#097DDD]" size={18} /> Business details
+                <h3 className="text-xs sm:text-sm font-black text-slate-800 mb-3 sm:mb-4 flex items-center gap-2">
+                  <Briefcase className="text-[#097DDD]" size={16} /> Business details
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2 md:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
+                  <div className="space-y-1 sm:space-y-2 md:col-span-2">
                     <label className={labelCls}>Business name</label>
                     <input
                       type="text"
@@ -695,28 +709,88 @@ export default function BusinessEditModal({
                 </div>
               </section>
 
+              {/* Opening Hours */}
+              {!isPendingDelete && (
+                <section>
+                  <h3 className="text-xs sm:text-sm font-black text-slate-800 mb-3 sm:mb-4 flex items-center gap-2">
+                    <Clock className="text-[#097DDD]" size={16} /> Business Hours
+                  </h3>
+                  <div className="space-y-2 sm:space-y-3">
+                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                      <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <label className="capitalize text-xs sm:text-sm font-black text-slate-600 min-w-[70px]">{day}</label>
+                        <div className="flex gap-2 flex-1">
+                          <input
+                            type="time"
+                            disabled={form.openingHours?.[day]?.closed || saving}
+                            className={`${inputCls} flex-1 disabled:opacity-50 text-sm`}
+                            value={form.openingHours?.[day]?.open || '09:00'}
+                            onChange={(e) => setForm({
+                              ...form,
+                              openingHours: {
+                                ...form.openingHours,
+                                [day]: { ...form.openingHours?.[day], open: e.target.value, closed: form.openingHours?.[day]?.closed || false }
+                              }
+                            })}
+                          />
+                          <input
+                            type="time"
+                            disabled={form.openingHours?.[day]?.closed || saving}
+                            className={`${inputCls} flex-1 disabled:opacity-50 text-sm`}
+                            value={form.openingHours?.[day]?.close || '17:00'}
+                            onChange={(e) => setForm({
+                              ...form,
+                              openingHours: {
+                                ...form.openingHours,
+                                [day]: { ...form.openingHours?.[day], close: e.target.value, closed: form.openingHours?.[day]?.closed || false }
+                              }
+                            })}
+                          />
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={form.openingHours?.[day]?.closed || false}
+                            onChange={(e) => setForm({
+                              ...form,
+                              openingHours: {
+                                ...form.openingHours,
+                                [day]: { ...form.openingHours?.[day], closed: e.target.checked }
+                              }
+                            })}
+                            className="w-4 h-4 rounded cursor-pointer"
+                            disabled={saving}
+                          />
+                          <span className="text-xs font-bold text-slate-600">Closed</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               <section>
-                <h3 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
-                  <FileText className="text-[#097DDD]" size={18} /> Descriptions
+                <h3 className="text-xs sm:text-sm font-black text-slate-800 mb-3 sm:mb-4 flex items-center gap-2">
+                  <FileText className="text-[#097DDD]" size={16} /> Descriptions
                 </h3>
-                <div className="space-y-5">
-                  <div className="space-y-2">
+                <div className="space-y-3 sm:space-y-5">
+                  <div className="space-y-1 sm:space-y-2">
                     <label className={labelCls}>Short description</label>
                     <textarea
                       rows={2}
                       value={form.shortDescription}
                       onChange={(e) => setField('shortDescription', e.target.value)}
-                      className={`${inputCls} resize-none`}
+                      className={`${inputCls} resize-none text-sm`}
                       disabled={isPendingDelete || saving}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1 sm:space-y-2">
                     <label className={labelCls}>Detailed writeup</label>
                     <textarea
                       rows={5}
                       value={form.longDescription}
                       onChange={(e) => setField('longDescription', e.target.value)}
-                      className={`${inputCls} resize-y font-medium`}
+                      className={`${inputCls} resize-y font-medium text-sm`}
                       disabled={isPendingDelete || saving}
                     />
                   </div>
@@ -724,11 +798,11 @@ export default function BusinessEditModal({
               </section>
             </div>
 
-            <div className="shrink-0 px-8 py-5 border-t border-slate-100 flex justify-end gap-3">
+            <div className="shrink-0 px-4 sm:px-8 py-3 sm:py-5 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] text-slate-500 hover:bg-slate-100 transition-colors"
+                className="px-4 sm:px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] text-slate-500 hover:bg-slate-100 transition-colors"
               >
                 Cancel
               </button>
@@ -737,7 +811,7 @@ export default function BusinessEditModal({
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="bg-[#097DDD] hover:bg-[#0869bb] disabled:opacity-60 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center gap-2 shadow-lg shadow-[#097DDD]/20"
+                  className="bg-[#097DDD] hover:bg-[#0869bb] disabled:opacity-60 text-white px-6 sm:px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center sm:justify-start gap-2 shadow-lg shadow-[#097DDD]/20"
                 >
                   {saving ? (
                     <>
@@ -746,7 +820,8 @@ export default function BusinessEditModal({
                   ) : (
                     <>
                       <Save size={14} />
-                      {isRejected ? 'Resubmit for approval' : 'Save changes'}
+                      <span className="hidden sm:inline">{isRejected ? 'Resubmit for approval' : 'Save changes'}</span>
+                      <span className="sm:hidden">{isRejected ? 'Resubmit' : 'Save'}</span>
                     </>
                   )}
                 </button>

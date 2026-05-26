@@ -71,6 +71,19 @@ export const ListBusinessFormSection = () => {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState(localStorage.getItem('prefillContactEmail') || localStorage.getItem('userEmail') || "");
 
+  // Opening Hours State
+  const [openingHours, setOpeningHours] = useState({
+    monday: { open: '09:00', close: '17:00', closed: false },
+    tuesday: { open: '09:00', close: '17:00', closed: false },
+    wednesday: { open: '09:00', close: '17:00', closed: false },
+    thursday: { open: '09:00', close: '17:00', closed: false },
+    friday: { open: '09:00', close: '17:00', closed: false },
+    saturday: { open: '09:00', close: '14:00', closed: false },
+    sunday: { open: '09:00', close: '17:00', closed: true },
+  });
+
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+
   // Fetch live categories and locations on mount
   useEffect(() => {
     getCategories()
@@ -316,6 +329,7 @@ export const ListBusinessFormSection = () => {
         contactEmail: contactEmail.trim(),
         logo: profileImageUrl,
         coverImage: profileImageUrl,
+        openingHours,
       });
 
       const businessId = business._id || business.id;
@@ -668,7 +682,57 @@ export const ListBusinessFormSection = () => {
 
                 <hr className="border-[#dde4ef] my-10" />
 
-                {/* Contact Info */}
+                {/* Opening Hours */}
+                <div>
+                  <h3 className="font-black text-[0.9rem] uppercase tracking-[0.2em] text-[#0A1830] mb-6 flex items-center gap-2">
+                    <Star size={14} className="text-[#097DDD] fill-[#097DDD]" />
+                    Business Hours
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {days.map((day) => (
+                      <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <label className="text-xs font-bold text-slate-600 capitalize min-w-[70px]">{day}</label>
+                        <div className="flex gap-2 flex-1">
+                          <input
+                            type="time"
+                            disabled={openingHours[day].closed}
+                            className={`${inputCls} flex-1 disabled:opacity-50`}
+                            value={openingHours[day].open}
+                            onChange={(e) => setOpeningHours({
+                              ...openingHours,
+                              [day]: { ...openingHours[day], open: e.target.value }
+                            })}
+                          />
+                          <input
+                            type="time"
+                            disabled={openingHours[day].closed}
+                            className={`${inputCls} flex-1 disabled:opacity-50`}
+                            value={openingHours[day].close}
+                            onChange={(e) => setOpeningHours({
+                              ...openingHours,
+                              [day]: { ...openingHours[day], close: e.target.value }
+                            })}
+                          />
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={openingHours[day].closed}
+                            onChange={(e) => setOpeningHours({
+                              ...openingHours,
+                              [day]: { ...openingHours[day], closed: e.target.checked }
+                            })}
+                            className="w-4 h-4 rounded cursor-pointer"
+                          />
+                          <span className="text-xs font-bold text-slate-600">Closed</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <hr className="border-[#dde4ef] my-10" />
                 <div>
                   <h3 className="font-black text-[0.9rem] uppercase tracking-[0.2em] text-[#0A1830] mb-6 flex items-center gap-2">
                     <Star size={14} className="text-[#097DDD] fill-[#097DDD]" />

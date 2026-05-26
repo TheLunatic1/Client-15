@@ -140,26 +140,48 @@ const UserDashboard = () => {
 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {savedStats.savedBusinessesPreview.map((biz) => (
-          <div key={biz._id || biz.businessName} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4 mb-4">
-              <div>
-                <h3 className="text-xl font-black text-slate-900">{biz.businessName}</h3>
-                <p className="text-xs uppercase tracking-[0.2em] font-black text-[#097DDD] mt-1">{biz.category}</p>
+        {savedStats.savedBusinessesPreview.map((biz) => {
+          const isOpen = (() => {
+            if (!biz.openingHours) return null;
+            const now = new Date();
+            const dayIndex = now.getDay();
+            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayKey = days[dayIndex];
+            const dayHours = biz.openingHours[dayKey];
+            
+            if (!dayHours || dayHours.closed) return false;
+            
+            const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            return currentTime >= dayHours.open && currentTime <= dayHours.close;
+          })();
+
+          return (
+            <div key={biz._id || biz.businessName} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">{biz.businessName}</h3>
+                  <p className="text-xs uppercase tracking-[0.2em] font-black text-[#097DDD] mt-1">{biz.category}</p>
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-[0.25em] px-3 py-2 rounded-full ${biz.status === 'approved' ? 'bg-emerald-500 text-white' : biz.status === 'pending' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'}`}>
+                  {biz.status}
+                </span>
               </div>
-              <span className={`text-[10px] font-black uppercase tracking-[0.25em] px-3 py-2 rounded-full ${biz.status === 'approved' ? 'bg-emerald-500 text-white' : biz.status === 'pending' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'}`}>
-                {biz.status}
-              </span>
+              <p className="text-sm text-slate-500 mb-2">{biz.location}</p>
+              {isOpen !== null && (
+                <p className={`text-xs font-black uppercase tracking-wider mb-4 flex items-center gap-1.5 ${isOpen ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  <span className={`inline-block w-2 h-2 rounded-full ${isOpen ? 'bg-emerald-600' : 'bg-rose-600'}`}></span>
+                  {isOpen ? 'Open Now' : 'Closed'}
+                </p>
+              )}
+              <button
+                onClick={() => navigate(`/business/${biz._id}`)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#097DDD] px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-white shadow-sm hover:bg-[#0869bb] transition-all"
+              >
+                View Business
+              </button>
             </div>
-            <p className="text-sm text-slate-500 mb-6">{biz.location}</p>
-            <button
-              onClick={() => navigate(`/business/${biz._id}`)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#097DDD] px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-white shadow-sm hover:bg-[#0869bb] transition-all"
-            >
-              View Business
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };

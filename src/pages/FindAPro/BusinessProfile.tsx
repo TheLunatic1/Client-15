@@ -688,16 +688,38 @@ const BusinessProfile = () => {
                   <h3 className="text-lg sm:text-xl font-black text-[#0D1F43] leading-tight">Business Hours</h3>
                 </div>
                 <div className="space-y-5">
-                  {[
-                    { day: "Mon - Fri", hours: "8:00 AM - 6:00 PM" },
-                    { day: "Saturday", hours: "9:00 AM - 4:00 PM" },
-                    { day: "Sunday", hours: "Closed" }
-                  ].map((item) => (
-                    <div key={item.day} className="flex flex-wrap justify-between items-center gap-2 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{item.day}</span>
-                      <span className="text-[13px] font-black text-[#0D1F43] text-right">{item.hours}</span>
-                    </div>
-                  ))}
+                  {pro?.openingHours ? (
+                    Object.entries(pro.openingHours).map(([day, hours]: [string, any]) => {
+                      const dayLabel = day.charAt(0).toUpperCase() + day.slice(1);
+                      const isClosed = hours.closed;
+                      const formatTime = (time: string) => {
+                        if (!time) return '';
+                        const [h, m] = time.split(':');
+                        const hour = parseInt(h);
+                        const ampm = hour >= 12 ? 'PM' : 'AM';
+                        const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                        return `${displayHour}:${m} ${ampm}`;
+                      };
+                      const hoursText = isClosed ? 'Closed' : `${formatTime(hours.open)} - ${formatTime(hours.close)}`;
+                      return (
+                        <div key={day} className="flex flex-wrap justify-between items-center gap-2 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{dayLabel}</span>
+                          <span className={`text-[13px] font-black text-right ${isClosed ? 'text-slate-400' : 'text-[#0D1F43]'}`}>{hoursText}</span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    [
+                      { day: "Mon - Fri", hours: "8:00 AM - 6:00 PM" },
+                      { day: "Saturday", hours: "9:00 AM - 4:00 PM" },
+                      { day: "Sunday", hours: "Closed" }
+                    ].map((item) => (
+                      <div key={item.day} className="flex flex-wrap justify-between items-center gap-2 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{item.day}</span>
+                        <span className="text-[13px] font-black text-[#0D1F43] text-right">{item.hours}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </motion.div>
             </div>

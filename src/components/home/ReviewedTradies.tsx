@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, CheckCircle2, Star, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Star, MapPin, Clock } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 import { getApprovedBusinesses } from "../../api/businessApi";
 
@@ -10,6 +10,20 @@ const GAP = 24;
 const ReviewedTradies = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [professionals, setProfessionals] = useState<any[]>([]);
+
+  const isCurrentlyOpen = (openingHours: any) => {
+    if (!openingHours) return null;
+    const now = new Date();
+    const dayIndex = now.getDay();
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayKey = days[dayIndex];
+    const dayHours = openingHours[dayKey];
+    
+    if (!dayHours || dayHours.closed) return false;
+    
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    return currentTime >= dayHours.open && currentTime <= dayHours.close;
+  };
 
   useEffect(() => {
     getApprovedBusinesses().then((data: any[]) => {
@@ -21,6 +35,8 @@ const ReviewedTradies = () => {
         image: b.coverImage || b.logo || "https://images.unsplash.com/photo-1542013936693-884638332954?auto=format&fit=crop&q=80&w=800",
         rating: b.rating && b.rating !== '0' && b.rating !== '0.0' ? Number(b.rating).toFixed(1) : 'New',
         reviews: b.reviews || 0,
+        openingHours: b.openingHours,
+        isOpen: isCurrentlyOpen(b.openingHours),
       }));
       setProfessionals(mapped);
     }).catch(console.error);
@@ -125,6 +141,15 @@ const ReviewedTradies = () => {
                   {business.name}
                 </h3>
                 <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4">{business.category}</p>
+
+                {business.isOpen !== null && (
+                  <div className="flex items-center justify-center gap-1.5 mb-4 pb-3 border-b border-slate-50">
+                    <Clock className="h-3.5 w-3.5 shrink-0" style={{ color: business.isOpen ? '#10b981' : '#ef4444' }} />
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${business.isOpen ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {business.isOpen ? 'Open now' : 'Closed'}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between border-t border-slate-50 pt-4">
                   <div className="flex items-center gap-1.5 min-w-0">
