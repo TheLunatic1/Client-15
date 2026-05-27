@@ -269,7 +269,9 @@ const TradieDashboard = () => {
           confirmPassword,
         });
         if (!pwCheck.ok) {
-          showValidationAlert(pwCheck.message);
+          if ('message' in pwCheck) {
+            showValidationAlert(pwCheck.message);
+          }
           return;
         }
         await axiosClient.put('/api/users/profile/password', {
@@ -351,7 +353,7 @@ const TradieDashboard = () => {
   const tabs = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
     { id: 'profile', name: 'Account Profile', icon: User },
-    { id: 'my-businesses', name: 'My Businesses', icon: Briefcase },
+    { id: 'my-businesses', name: 'Manage Business', icon: Briefcase },
     { id: 'security', name: 'Security Center', icon: ShieldCheck },
   ];
 
@@ -529,19 +531,25 @@ const TradieDashboard = () => {
         );
 
       case 'my-businesses':
+        const hasBusiness = formData.businessesList.length > 0;
+        const biz = hasBusiness ? formData.businessesList[0] : null;
+
         return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8 bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-slate-800">My Businesses</h3>
-              <button onClick={() => navigate('/list-your-business')} className="bg-[#097DDD] hover:bg-[#0869bb] text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center gap-2 shadow-lg shadow-[#097DDD]/20">
-                <Plus size={14} /> Add New Business
-              </button>
+              <h3 className="text-xl font-black text-slate-800">Manage Business</h3>
+              {!hasBusiness && (
+                <button onClick={() => navigate('/list-your-business')} className="bg-[#097DDD] hover:bg-[#0869bb] text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center gap-2 shadow-lg shadow-[#097DDD]/20">
+                  <Plus size={14} /> Add Business
+                </button>
+              )}
             </div>
-            {formData.businessesList.length === 0 ? (
+            
+            {!hasBusiness ? (
               <div className="text-center py-16 rounded-2xl border border-dashed border-slate-200 bg-slate-50">
                 <Briefcase className="mx-auto text-slate-300 mb-4" size={40} />
-                <p className="font-bold text-slate-600 mb-2">No businesses listed yet</p>
-                <p className="text-sm text-slate-400 mb-6">Add your first listing to get started.</p>
+                <p className="font-bold text-slate-600 mb-2">No business listed yet</p>
+                <p className="text-sm text-slate-400 mb-6">Add your business to get started.</p>
                 <button
                   onClick={() => navigate('/list-your-business')}
                   className="bg-[#097DDD] hover:bg-[#0869bb] text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px]"
@@ -549,50 +557,51 @@ const TradieDashboard = () => {
                   List your business
                 </button>
               </div>
-            ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {formData.businessesList.map((biz) => (
-                <div key={biz.id} className="border border-slate-200 rounded-2xl flex flex-col justify-between hover:border-[#097DDD]/30 transition-colors overflow-hidden bg-white shadow-sm group">
-                  <div className="h-40 w-full bg-slate-100 relative overflow-hidden">
-                    <img src={biz.image} alt={biz.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                    <span className={`absolute top-4 right-4 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg backdrop-blur-md ${
-                      biz.status.toLowerCase().includes('approved') ? 'bg-emerald-500/90 text-white' :
-                      biz.status.toLowerCase().includes('rejected') ? 'bg-rose-500/90 text-white' :
-                      biz.status.toLowerCase().includes('delete') ? 'bg-rose-500/90 text-white' :
-                      'bg-amber-500/90 text-white'
-                    }`}>
-                      {biz.status}
-                    </span>
-                  </div>
-                  <div className="p-6">
-                    <h4 className="font-bold text-slate-800 text-lg mb-2">{biz.name}</h4>
-                    <p className="text-xs text-slate-500 mb-1 font-bold">{biz.category}</p>
-                    <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin size={12} /> {biz.location}</p>
-                    {biz.status === 'Rejected' && (
-                      <p className="text-[10px] text-rose-600 font-bold mt-3 leading-relaxed">
-                        Rejected — edit and resubmit for admin approval.
+            ) : biz ? (
+              <div className="border border-slate-200 rounded-2xl flex flex-col md:flex-row overflow-hidden bg-white shadow-sm group">
+                <div className="md:w-1/3 h-64 md:h-auto bg-slate-100 relative overflow-hidden">
+                  <img src={biz.image} alt={biz.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <span className={`absolute top-4 right-4 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg backdrop-blur-md ${
+                    biz.status.toLowerCase().includes('approved') ? 'bg-emerald-500/90 text-white' :
+                    biz.status.toLowerCase().includes('rejected') ? 'bg-rose-500/90 text-white' :
+                    biz.status.toLowerCase().includes('delete') ? 'bg-rose-500/90 text-white' :
+                    'bg-amber-500/90 text-white'
+                  }`}>
+                    {biz.status}
+                  </span>
+                </div>
+                <div className="p-8 md:w-2/3 flex flex-col justify-center">
+                  <h4 className="font-black text-slate-800 text-3xl mb-2">{biz.name}</h4>
+                  <p className="text-sm text-[#097DDD] mb-4 font-bold uppercase tracking-wider">{biz.category}</p>
+                  <p className="text-sm text-slate-500 flex items-center gap-2 mb-6"><MapPin size={16} /> {biz.location}</p>
+                  
+                  {biz.status === 'Rejected' && (
+                    <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 mb-6">
+                      <p className="text-xs text-rose-600 font-bold flex items-center gap-2">
+                        <AlertCircle size={16} />
+                        Your business was rejected. Please edit your details and resubmit for admin approval.
                       </p>
-                    )}
-                    <div className="mt-6 flex gap-3">
-                      <button
-                        onClick={() => openEditBusiness(biz.id)}
-                        className="flex-grow justify-center text-[#097DDD] hover:text-[#0869bb] text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors bg-[#097DDD]/5 px-4 py-3 rounded-xl hover:bg-[#097DDD]/10"
-                      >
-                        <Edit2 size={12} /> {biz.status === 'Rejected' ? 'Edit & resubmit' : 'Edit details'}
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteListing(biz.id, biz.name)}
-                        className="text-rose-500 hover:text-white hover:bg-rose-500 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors bg-rose-50 px-4 py-3 rounded-xl border border-rose-100"
-                        title="Delete business"
-                      >
-                        <Trash2 size={12} /> Delete
-                      </button>
                     </div>
+                  )}
+
+                  <div className="flex gap-4 mt-auto">
+                    <button
+                      onClick={() => openEditBusiness(biz.id)}
+                      className="flex-grow justify-center bg-[#097DDD] hover:bg-[#0869bb] text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2 transition-all px-6 py-4 rounded-xl shadow-lg shadow-[#097DDD]/20"
+                    >
+                      <Edit2 size={16} /> {biz.status === 'Rejected' ? 'Edit & Resubmit' : 'Edit Business Settings'}
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteListing(biz.id, biz.name)}
+                      className="text-rose-500 hover:text-white hover:bg-rose-500 text-[11px] font-black uppercase tracking-wider flex items-center gap-2 transition-colors bg-rose-50 px-6 py-4 rounded-xl border border-rose-100"
+                      title="Delete business"
+                    >
+                      <Trash2 size={16} /> Delete
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-            )}
+              </div>
+            ) : null}
           </motion.div>
         );
 

@@ -153,7 +153,9 @@ const JoinNow = () => {
   };
 
   const handleContinue = () => {
-    if (type) {
+    if (type === 'tradie') {
+      navigate('/list-your-business');
+    } else if (type === 'customer') {
       setStep('form');
     }
   };

@@ -4,6 +4,8 @@ import { AnimatePresence } from 'framer-motion';
 import { ListBusinessHero, ListBusinessFormSection } from '../../components/list-your-business';
 import { BecomeTradieModal } from '../../components/common/index.ts';
 
+import { getMyListings } from '../../api/businessApi';
+
 export default function ListYourBusinessPage() {
   const navigate = useNavigate();
   const [showBecomeTradieModal, setShowBecomeTradieModal] = useState(false);
@@ -20,8 +22,14 @@ export default function ListYourBusinessPage() {
     if (isLoggedIn && role === 'user') {
       setIsRegularUser(true);
       setShowBecomeTradieModal(true);
+    } else if (isLoggedIn && role === 'tradie') {
+      getMyListings().then((listings) => {
+        if (listings && listings.length > 0) {
+          navigate('/tradie-dashboard', { state: { activeTab: 'business' } });
+        }
+      }).catch((err) => console.error(err));
     }
-  }, []);
+  }, [navigate]);
 
   return (
     <>

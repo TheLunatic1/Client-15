@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, ArrowRight, Upload, Star, Loader2, X } from "lucide-react";
+import { CheckCircle2, ArrowRight, Upload, Star, Loader2, X, Lock, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import axiosClient from "../../api/axios";
 import { createBusiness, addGalleryImage } from "../../api/businessApi";
 import { getCategories } from "../../api/categoryApi";
 import { getLocations } from "../../api/locationApi";
@@ -18,6 +20,7 @@ type UploadedImage = {
   id: string;
   preview: string;
   url: string;
+  file?: File;
   uploading?: boolean;
   isProfile?: boolean;
 };
@@ -47,15 +50,25 @@ const FALLBACK_LOCATIONS = [
 ];
 
 export const ListBusinessFormSection = () => {
+  const navigate = useNavigate();
   const formRef = useRef<HTMLDivElement>(null);
   const profileFileInputRef = useRef<HTMLInputElement>(null);
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
   const [sent, setSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isUploadingImages] = useState(false);
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [categories, setCategories] = useState<string[]>(FALLBACK_CATEGORIES);
   const [locations, setLocations] = useState<string[]>(FALLBACK_LOCATIONS);
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  useEffect(() => {
+    setIsLoggedIn(localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('userRole') === 'tradie');
+  }, []);
+
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form state — pre-fill from registration flow
   const [businessName, setBusinessName] = useState(localStorage.getItem('prefillBusinessName') || "");
@@ -116,17 +129,6 @@ export const ListBusinessFormSection = () => {
     e.target.value = "";
     if (!files.length) return;
 
-    const token = localStorage.getItem("token");
-    if (!token || token === "dummy-tradie-token") {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "Please log in as a tradie before uploading images.",
-        icon: "warning",
-        confirmButtonColor: "#097DDD",
-      });
-      return;
-    }
-
     if (files.length > MAX_PROFILE_IMAGES) {
       Swal.fire({
         title: "One Image Only",
@@ -137,8 +139,6 @@ export const ListBusinessFormSection = () => {
       return;
     }
 
-    setIsUploadingImages(true);
-
     const file = files[0];
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       Swal.fire({
@@ -147,34 +147,13 @@ export const ListBusinessFormSection = () => {
         icon: "warning",
         confirmButtonColor: "#097DDD",
       });
-      setIsUploadingImages(false);
       return;
     }
 
-    // Remove existing profile image if any
     setImages((prev) => prev.filter((img) => !img.isProfile));
-
     const id = `profile-${Date.now()}`;
     const preview = URL.createObjectURL(file);
-    setImages((prev) => [...prev, { id, preview, url: "", uploading: true, isProfile: true }]);
-
-    try {
-      const url = await uploadImage(file);
-      setImages((prev) =>
-        prev.map((img) => (img.id === id ? { ...img, url, uploading: false } : img))
-      );
-    } catch {
-      setImages((prev) => prev.filter((img) => img.id !== id));
-      URL.revokeObjectURL(preview);
-      Swal.fire({
-        title: "Upload Failed",
-        text: "Could not upload image. Please try again.",
-        icon: "error",
-        confirmButtonColor: "#097DDD",
-      });
-    }
-
-    setIsUploadingImages(false);
+    setImages((prev) => [...prev, { id, preview, url: "", file, uploading: false, isProfile: true }]);
   };
 
   const handleGalleryImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,19 +161,8 @@ export const ListBusinessFormSection = () => {
     e.target.value = "";
     if (!files.length) return;
 
-    const token = localStorage.getItem("token");
-    if (!token || token === "dummy-tradie-token") {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "Please log in as a tradie before uploading images.",
-        icon: "warning",
-        confirmButtonColor: "#097DDD",
-      });
-      return;
-    }
-
     const galleryImages = images.filter((i) => !i.isProfile);
-    const gallerySlotsLeft = MAX_GALLERY_IMAGES - galleryImages.filter((i) => i.url || i.uploading).length;
+    const gallerySlotsLeft = MAX_GALLERY_IMAGES - galleryImages.length;
 
     if (gallerySlotsLeft <= 0) {
       Swal.fire({
@@ -207,7 +175,6 @@ export const ListBusinessFormSection = () => {
     }
 
     const filesToUpload = files.slice(0, gallerySlotsLeft);
-    setIsUploadingImages(true);
 
     for (const file of filesToUpload) {
       if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
@@ -222,26 +189,8 @@ export const ListBusinessFormSection = () => {
 
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const preview = URL.createObjectURL(file);
-      setImages((prev) => [...prev, { id, preview, url: "", uploading: true, isProfile: false }]);
-
-      try {
-        const url = await uploadImage(file);
-        setImages((prev) =>
-          prev.map((img) => (img.id === id ? { ...img, url, uploading: false } : img))
-        );
-      } catch {
-        setImages((prev) => prev.filter((img) => img.id !== id));
-        URL.revokeObjectURL(preview);
-        Swal.fire({
-          title: "Upload Failed",
-          text: "Could not upload image. Please try again.",
-          icon: "error",
-          confirmButtonColor: "#097DDD",
-        });
-      }
+      setImages((prev) => [...prev, { id, preview, url: "", file, uploading: false, isProfile: false }]);
     }
-
-    setIsUploadingImages(false);
   };
 
   const removeImage = (id: string) => {
@@ -269,22 +218,27 @@ export const ListBusinessFormSection = () => {
       contactName,
     });
     if (!validation.ok) {
-      showValidationAlert(validation.message);
+      if ('message' in validation) {
+        showValidationAlert(validation.message);
+      }
       scrollToFormTop();
       return;
     }
 
-    if (images.some((img) => img.uploading)) {
-      Swal.fire({
-        title: 'Upload in Progress',
-        text: 'Please wait for images to finish uploading.',
-        icon: 'info',
-        confirmButtonColor: '#097DDD',
-      });
-      return;
+    if (!isLoggedIn) {
+      if (password.length < 8) {
+        showValidationAlert("Password must be at least 8 characters long.");
+        scrollToFormTop();
+        return;
+      }
+      if (password !== confirmPassword) {
+        showValidationAlert("Passwords do not match.");
+        scrollToFormTop();
+        return;
+      }
     }
 
-    const profileImage = images.find((img) => img.isProfile && img.url);
+    const profileImage = images.find((img) => img.isProfile);
     if (!profileImage) {
       Swal.fire({
         title: 'Profile Picture Required',
@@ -296,25 +250,47 @@ export const ListBusinessFormSection = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
-    if (!token || token === 'dummy-tradie-token') {
-      Swal.fire({
-        title: 'Not Logged In',
-        text: 'You need to be logged in as a tradie to submit a listing. Please register or log in first.',
-        icon: 'error',
-        confirmButtonColor: '#097DDD',
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      const uploadedImages = images.filter((img) => img.url);
-      const profileImage = uploadedImages.find((img) => img.isProfile);
+      // 1. Register User if not logged in
+      if (!isLoggedIn) {
+        const parts = contactName.trim().split(' ');
+        const fName = parts[0] || '';
+        const lName = parts.slice(1).join(' ') || '';
+
+        const response = await axiosClient.post('/api/users/register', {
+          firstName: fName,
+          lastName: lName,
+          email: contactEmail.trim().toLowerCase(),
+          password,
+          role: 'tradie',
+        });
+        const data = response.data;
+        
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userRole', 'tradie');
+        localStorage.setItem('userName', contactName);
+        localStorage.setItem('userEmail', contactEmail);
+      }
+
+      // 2. Upload Images
+      const uploadedImages = [];
+      for (const img of images) {
+        if (img.file && !img.url) {
+          const url = await uploadImage(img.file);
+          uploadedImages.push({ ...img, url });
+        } else if (img.url) {
+          uploadedImages.push(img);
+        }
+      }
+
+      const uploadedProfileImage = uploadedImages.find((img) => img.isProfile);
       const galleryImages = uploadedImages.filter((img) => !img.isProfile);
 
-      const profileImageUrl = profileImage?.url || "";
+      const profileImageUrl = uploadedProfileImage?.url || "";
 
+      // 3. Create Business
       const business = await createBusiness({
         businessName: businessName.trim(),
         category,
@@ -345,6 +321,16 @@ export const ListBusinessFormSection = () => {
       localStorage.removeItem('prefillContactEmail');
 
       setSent(true);
+      
+      Swal.fire({
+        title: 'Listing Submitted!',
+        text: 'Your business has been created successfully.',
+        icon: 'success',
+        confirmButtonColor: '#097DDD'
+      }).then(() => {
+        navigate('/tradie-dashboard');
+      });
+
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Failed to submit listing. Please try again.';
       Swal.fire({ title: 'Submission Failed', text: msg, icon: 'error', confirmButtonColor: '#097DDD' });
@@ -732,11 +718,12 @@ export const ListBusinessFormSection = () => {
                   </div>
                 </div>
 
+                {/* Contact Information */}
                 <hr className="border-[#dde4ef] my-10" />
                 <div>
                   <h3 className="font-black text-[0.9rem] uppercase tracking-[0.2em] text-[#0A1830] mb-6 flex items-center gap-2">
                     <Star size={14} className="text-[#097DDD] fill-[#097DDD]" />
-                    Contact Information
+                    {isLoggedIn ? 'Contact Information' : 'Account & Contact Setup'}
                   </h3>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
@@ -764,7 +751,7 @@ export const ListBusinessFormSection = () => {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="mb-6">
                     <label className={labelCls}>Email *</label>
                     <input
                       required
@@ -775,6 +762,42 @@ export const ListBusinessFormSection = () => {
                       onChange={(e) => setContactEmail(e.target.value)}
                     />
                   </div>
+
+                  {!isLoggedIn && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6 bg-[#097DDD]/5 p-6 rounded-2xl border border-[#097DDD]/10">
+                      <div>
+                        <label className={labelCls}>Create Password *</label>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                          <input
+                            required
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            className={`${inputCls} pl-11 pr-11`}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                          />
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Confirm Password *</label>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                          <input
+                            required
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            className={`${inputCls} pl-11 pr-11`}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Terms and Submit */}
