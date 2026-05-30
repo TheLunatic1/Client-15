@@ -23,7 +23,7 @@ const CategorySection = ({ onAdd, onEdit, onDelete, refreshKey }: CategorySectio
         setLoading(true);
         const data = await getCategories();
         const mapped = Array.isArray(data)
-          ? data.map((item: any) => ({ id: item._id ?? item.id, name: item.name }))
+          ? data.map((item: any) => ({ id: item._id ?? item.id, name: item.name, slug: item.slug, image: item.image }))
           : [];
         if (mounted) {
           setCategories(mapped);
@@ -72,10 +72,14 @@ const CategorySection = ({ onAdd, onEdit, onDelete, refreshKey }: CategorySectio
         {displayCategories.map((cat) => (
           <div key={cat.id || cat._id || cat.name} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
             <div className="flex items-center justify-between mb-8">
-              <div className="w-14 h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <LayoutGrid size={24} />
+              <div className="w-14 h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform">
+                {cat.image ? (
+                  <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                ) : (
+                  <LayoutGrid size={24} />
+                )}
               </div>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                 <button onClick={() => onEdit(cat)} className="p-2 text-slate-400 hover:text-primary transition-colors">
                   <Edit2 size={14} />
                 </button>
