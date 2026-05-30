@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
+import { getCategories } from "../../api/categoryApi";
 
 // Import local assets
 import handymanImg from "../../assets/section images/handsome-woodworker-posing-photography.jpg";
@@ -20,7 +22,7 @@ import landscapersImg from "../../assets/section images/david-clode-h7D3RSePhnc-
 import photographersImg from "../../assets/section images/jamie-street-qWYvQMIJyfE-unsplash.jpg";
 import fencingImg from "../../assets/section images/imgi_62_image-1738134768994.png";
 
-const categories = [
+const FALLBACK_CATEGORIES = [
   { name: "HANDYMAN SERVICES", image: handymanImg },
   { name: "LAWN MOWING AND GARDENING", image: gardeningImg },
   { name: "DOMESTIC CLEANING", image: cleaningImg },
@@ -40,13 +42,33 @@ const categories = [
 ];
 
 export const CategoriesGrid = () => {
+  const [displayCategories, setDisplayCategories] = useState<any[]>(FALLBACK_CATEGORIES);
+
+  useEffect(() => {
+    let mounted = true;
+    getCategories()
+      .then((cats) => {
+        if (mounted && Array.isArray(cats) && cats.length > 0) {
+          const mappedCats = cats.map(c => {
+            const fallback = FALLBACK_CATEGORIES.find(fc => fc.name.toLowerCase() === c.name.toLowerCase());
+            return {
+              name: c.name,
+              image: c.image || fallback?.image || handymanImg
+            };
+          });
+          setDisplayCategories(mappedCats);
+        }
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
   return (
     <section className="bg-slate-50 py-16 pb-24">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Categories Grid - 16 simplified cards, non-clickable, clean and large for older eyes */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-16">
-          {categories.map((category, index) => (
+          {displayCategories.map((category, index) => (
             <motion.div
               key={category.name}
               initial={{ opacity: 0, y: 20 }}
@@ -67,7 +89,7 @@ export const CategoriesGrid = () => {
 
               {/* Title Content */}
               <div className="absolute inset-x-0 bottom-0 p-8 flex flex-col justify-end">
-                <h3 className="text-white font-black text-base sm:text-[17px] md:text-lg leading-tight uppercase tracking-wider">
+                <h3 className="text-white font-black text-base sm:text-[17px] md:text-lg leading-tight uppercase tracking-wider break-words text-wrap">
                   {category.name}
                 </h3>
               </div>

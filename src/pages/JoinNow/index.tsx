@@ -28,6 +28,7 @@ const JoinNow = () => {
   // Form State
   const [showPassword, setShowPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [hasInsurance, setHasInsurance] = useState(false);
 
   // Customer Form States
   const [firstName, setFirstName] = useState('');
@@ -93,6 +94,7 @@ const JoinNow = () => {
       confirmPassword: tradieConfirmPassword,
       businessName: tradieBusinessName,
       agreeToTerms,
+      hasInsurance,
     });
     if ('message' in check) {
       showValidationAlert(check.message);
@@ -383,7 +385,7 @@ const JoinNow = () => {
                       <p className="text-[10px] text-white/45 font-medium -mt-2">{PASSWORD_REQUIREMENTS_HINT}</p>
 
                       {/* Terms */}
-                      <div className="pt-2">
+                      <div className="pt-2 space-y-4">
                         <label className="flex items-center space-x-3 cursor-pointer group select-none">
                           <input
                             type="checkbox"
@@ -391,11 +393,26 @@ const JoinNow = () => {
                             onChange={(e) => setAgreeToTerms(e.target.checked)}
                             className="hidden"
                           />
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${agreeToTerms ? 'border-[#097DDD] bg-[#097DDD]/10' : 'border-white/10 group-hover:border-[#097DDD]'}`}>
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${agreeToTerms ? 'border-[#097DDD] bg-[#097DDD]/10' : 'border-white/10 group-hover:border-[#097DDD]'}`}>
                             {agreeToTerms && <Check size={12} className="text-[#097DDD]" />}
                           </div>
                           <p className="text-[11px] font-medium text-white/40">
                             I agree to the <Link to="/terms" className="text-[#097DDD] hover:underline transition-all">Terms & Conditions</Link> and <Link to="/privacy" className="text-[#097DDD] hover:underline transition-all">Privacy Policy</Link>
+                          </p>
+                        </label>
+
+                        <label className="flex items-center space-x-3 cursor-pointer group select-none">
+                          <input
+                            type="checkbox"
+                            checked={hasInsurance}
+                            onChange={(e) => setHasInsurance(e.target.checked)}
+                            className="hidden"
+                          />
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${hasInsurance ? 'border-[#097DDD] bg-[#097DDD]/10' : 'border-white/10 group-hover:border-[#097DDD]'}`}>
+                            {hasInsurance && <Check size={12} className="text-[#097DDD]" />}
+                          </div>
+                          <p className="text-[11px] font-medium text-white/40">
+                            I confirm my business maintains appropriate insurance coverage for the services we provide.
                           </p>
                         </label>
                       </div>

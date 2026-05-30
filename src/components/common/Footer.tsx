@@ -117,7 +117,7 @@ const Footer = () => {
               <h4 className="text-xs font-black uppercase tracking-[0.25em] text-white mb-8">Company</h4>
               <ul className="space-y-4">
                 {[
-                  { label: 'About Us', to: '/' },
+                  { label: 'About Us', to: '/about' },
                   { label: 'Find a Pro', to: '/find-a-pro' },
                   { label: 'List Your Business', to: '/list-your-business' },
                   { label: 'Blog & News', to: '/blog' },

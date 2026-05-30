@@ -181,7 +181,7 @@ const BlogDetails = () => {
             className="bg-white rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] overflow-hidden"
           >
             <div className="p-8 md:p-16 lg:p-20 text-[#5a6a85]">
-              <div className="prose prose-slate max-w-none prose-headings:text-[#0A1830] prose-headings:font-black prose-p:text-[#5a6a85] prose-p:leading-[1.8] prose-p:font-medium prose-strong:text-[#0A1830] prose-li:text-[#5a6a85] prose-li:font-medium">
+              <div className="prose prose-slate max-w-none prose-headings:text-[#0A1830] prose-headings:font-black prose-p:text-[#5a6a85] prose-p:leading-[1.8] prose-p:font-medium prose-strong:text-[#0A1830] prose-li:text-[#5a6a85] prose-li:font-medium whitespace-pre-wrap">
                 <div dangerouslySetInnerHTML={{ __html: post.content || `<p>${post.excerpt || ''}</p>` }} />
               </div>
 

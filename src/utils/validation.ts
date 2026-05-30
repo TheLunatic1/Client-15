@@ -194,6 +194,7 @@ export const validateTradieRegistration = (data: {
   confirmPassword: string;
   businessName?: string;
   agreeToTerms: boolean;
+  hasInsurance: boolean;
 }): ValidationResult => {
   const checks: ValidationResult[] = [
     validateFullName(data.fullName),
@@ -206,6 +207,9 @@ export const validateTradieRegistration = (data: {
   }
   if (!data.agreeToTerms) {
     return fail('You must agree to the Terms & Conditions and Privacy Policy.');
+  }
+  if (!data.hasInsurance) {
+    return fail('You must confirm your business maintains appropriate insurance coverage.');
   }
   return runValidations(...checks);
 };
@@ -227,7 +231,7 @@ export const validateListBusinessForm = (data: {
     validateBusinessName(data.businessName),
     validateSelect(data.category, 'service category'),
     validateSelect(data.location, 'location'),
-    validateTextLength(data.shortDescription, 'Business description', 20, 500),
+    validateTextLength(data.shortDescription, 'Business description', 20, 1000),
     validateTextLength(data.servicesOffered, 'Services offered', 3, 300),
     validateAbn(data.abn),
     validatePhoneAU(data.contactPhone, true),

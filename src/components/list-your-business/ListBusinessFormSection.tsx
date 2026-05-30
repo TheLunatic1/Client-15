@@ -60,6 +60,7 @@ export const ListBusinessFormSection = () => {
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [categories, setCategories] = useState<string[]>(FALLBACK_CATEGORIES);
   const [locations, setLocations] = useState<string[]>(FALLBACK_LOCATIONS);
+  const [hasInsurance, setHasInsurance] = useState(false);
   
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   useEffect(() => {
@@ -221,6 +222,12 @@ export const ListBusinessFormSection = () => {
       if ('message' in validation) {
         showValidationAlert(validation.message);
       }
+      scrollToFormTop();
+      return;
+    }
+
+    if (!hasInsurance) {
+      showValidationAlert("You must confirm that your business maintains appropriate insurance coverage.");
       scrollToFormTop();
       return;
     }
@@ -801,11 +808,30 @@ export const ListBusinessFormSection = () => {
                 </div>
 
                 {/* Terms and Submit */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8">
-                  <p className="text-[11px] text-[#7a90a8] font-bold">
-                    By submitting you agree to our <a href="/terms" className="text-[#097DDD] hover:underline">listing terms</a>.
-                  </p>
-                  <button
+                <div className="flex flex-col gap-6 pt-8">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <p className="text-[11px] text-[#7a90a8] font-bold">
+                      By submitting you agree to our <a href="/terms" className="text-[#097DDD] hover:underline">listing terms</a>.
+                    </p>
+                    
+                    <label className="flex items-center space-x-3 cursor-pointer group select-none bg-[#097DDD]/5 p-3 rounded-xl border border-[#097DDD]/10">
+                      <input
+                        type="checkbox"
+                        checked={hasInsurance}
+                        onChange={(e) => setHasInsurance(e.target.checked)}
+                        className="hidden"
+                      />
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${hasInsurance ? 'border-[#097DDD] bg-[#097DDD]' : 'border-[#097DDD]/30 group-hover:border-[#097DDD]'}`}>
+                        {hasInsurance && <CheckCircle2 size={14} className="text-white" />}
+                      </div>
+                      <p className="text-[11px] font-bold text-[#0A1830]">
+                        I confirm my business maintains appropriate insurance coverage for the services we provide. *
+                      </p>
+                    </label>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <button
                     type="submit"
                     disabled={isSubmitting || isUploadingImages}
                     className="w-full sm:w-auto flex items-center justify-center gap-3 bg-[#097DDD] text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-xl py-5 px-12 shadow-[0_4px_25px_rgba(9,125,221,0.4)] hover:bg-[#0a8ef0] hover:shadow-[0_8px_35px_rgba(9,125,221,0.55)] transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
@@ -816,6 +842,7 @@ export const ListBusinessFormSection = () => {
                       <>Submit Listing <ArrowRight size={16} /></>
                     )}
                   </button>
+                  </div>
                 </div>
               </div>
             </>

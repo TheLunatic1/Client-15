@@ -324,7 +324,23 @@ const AdminDashboard = () => {
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [categoryForm, setCategoryForm] = useState({ name: '', slug: '' });
+  const [categoryForm, setCategoryForm] = useState({ name: '', slug: '', image: '' });
+  const [categoryImageUploading, setCategoryImageUploading] = useState(false);
+
+  // Upload image file to server → get back a URL, store in form
+  const handleCategoryImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setCategoryImageUploading(true);
+      const url = await uploadImage(file);
+      setCategoryForm(prev => ({ ...prev, image: url }));
+    } catch (err: any) {
+      Swal.fire('Upload Failed', err?.response?.data?.message || 'Could not upload image.', 'error');
+    } finally {
+      setCategoryImageUploading(false);
+    }
+  };
 
   // Locations Management State
   const [locationsRefreshKey, setLocationsRefreshKey] = useState(0);
@@ -336,10 +352,10 @@ const AdminDashboard = () => {
   const handleOpenCategoryModal = (category: any = null) => {
     if (category) {
       setEditingCategory(category);
-      setCategoryForm({ name: category.name, slug: category.slug });
+      setCategoryForm({ name: category.name, slug: category.slug, image: category.image || '' });
     } else {
       setEditingCategory(null);
-      setCategoryForm({ name: '', slug: '' });
+      setCategoryForm({ name: '', slug: '', image: '' });
     }
     setIsCategoryModalOpen(true);
   };
@@ -361,7 +377,7 @@ const AdminDashboard = () => {
       }
       setIsCategoryModalOpen(false);
       setEditingCategory(null);
-      setCategoryForm({ name: '', slug: '' });
+      setCategoryForm({ name: '', slug: '', image: '' });
       setCategoriesRefreshKey((prev) => prev + 1);
     } catch (err: any) {
       Swal.fire('Error', err?.response?.data?.message || err?.message || 'Unable to save category.', 'error');
@@ -1049,6 +1065,40 @@ const AdminDashboard = () => {
                 </button>
               </div>
               <form onSubmit={handleSaveCategory} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Category Image</label>
+                  <div className="relative h-40 bg-slate-50 rounded-[2rem] border-4 border-dashed border-slate-100 overflow-hidden group cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCategoryImageChange}
+                      disabled={categoryImageUploading}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                    />
+                    {categoryImageUploading ? (
+                      <div className="h-full flex flex-col items-center justify-center gap-4 text-[#097DDD]">
+                        <svg className="animate-spin w-8 h-8" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Uploading...</span>
+                      </div>
+                    ) : categoryForm.image ? (
+                      <>
+                        <img src={categoryForm.image} className="w-full h-full object-cover" alt="Category preview" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Camera className="text-white w-8 h-8" />
+                          <span className="ml-2 text-white font-black text-xs">Change Image</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-2">
+                        <Upload size={32} strokeWidth={1.5} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Upload Image</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Category Name</label>
                   <input
