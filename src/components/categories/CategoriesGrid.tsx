@@ -42,7 +42,8 @@ const FALLBACK_CATEGORIES = [
 ];
 
 export const CategoriesGrid = () => {
-  const [displayCategories, setDisplayCategories] = useState<any[]>(FALLBACK_CATEGORIES);
+  const [displayCategories, setDisplayCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -59,42 +60,57 @@ export const CategoriesGrid = () => {
           setDisplayCategories(mappedCats);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (mounted) setDisplayCategories(FALLBACK_CATEGORIES);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     return () => { mounted = false; };
   }, []);
+
   return (
     <section className="bg-slate-50 py-16 pb-24">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Categories Grid - 16 simplified cards, non-clickable, clean and large for older eyes */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-16">
-          {displayCategories.map((category, index) => (
-            <motion.div
-              key={category.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.03 }}
-              className="group relative aspect-[4/5] rounded-[2rem] overflow-hidden select-none shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-slate-100/80 bg-slate-100"
-            >
-              {/* Background Image - with polish hover zoom but no active pointer cursor */}
-              <img
-                src={category.image}
-                alt={category.name}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          {loading ? (
+            Array.from({ length: 16 }).map((_, index) => (
+              <div
+                key={`skeleton-${index}`}
+                className="aspect-[4/5] rounded-[2rem] bg-slate-200 animate-pulse border border-slate-100"
               />
-              
-              {/* High Contrast Gradient Overlay for text readability */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0A1830]/90 via-[#0A1830]/35 to-transparent" />
+            ))
+          ) : (
+            displayCategories.map((category, index) => (
+              <motion.div
+                key={category.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.03 }}
+                className="group relative aspect-[4/5] rounded-[2rem] overflow-hidden select-none shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-slate-100/80 bg-slate-100"
+              >
+                {/* Background Image - with polish hover zoom but no active pointer cursor */}
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                
+                {/* High Contrast Gradient Overlay for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0A1830]/90 via-[#0A1830]/35 to-transparent" />
 
-              {/* Title Content */}
-              <div className="absolute inset-x-0 bottom-0 p-8 flex flex-col justify-end">
-                <h3 className="text-white font-black text-base sm:text-[17px] md:text-lg leading-tight uppercase tracking-wider break-words text-wrap">
-                  {category.name}
-                </h3>
-              </div>
-            </motion.div>
-          ))}
+                {/* Title Content */}
+                <div className="absolute inset-x-0 bottom-0 p-8 flex flex-col justify-end">
+                  <h3 className="text-white font-black text-base sm:text-[17px] md:text-lg leading-tight uppercase tracking-wider break-words text-wrap">
+                    {category.name}
+                  </h3>
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
 
         {/* Large, centered, high-legibility CTA button linking to main search page */}
